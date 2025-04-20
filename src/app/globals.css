@@ -3,6 +3,15 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-500: #6b7280;
+  --gray-700: #374151;
+  --red-500: #ef4444;
+  --red-600: #dc2626;
+  --red-50: #fef2f2;
+  --blue-600: #2563eb;
+  --blue-800: #1e40af;
 }
 
 @theme inline {
@@ -16,6 +25,15 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --gray-100: #1f2937;
+    --gray-200: #374151;
+    --gray-500: #9ca3af;
+    --gray-700: #d1d5db;
+    --red-500: #f87171;
+    --red-600: #ef4444;
+    --red-50: #450a0a;
+    --blue-600: #3b82f6;
+    --blue-800: #60a5fa;
   }
 }
 
@@ -23,4 +41,41 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* 관리자 페이지 스타일 재정의 */
+.text-gray-500 {
+  color: var(--gray-500);
+}
+
+.text-blue-600 {
+  color: var(--blue-600);
+}
+
+.text-blue-800 {
+  color: var(--blue-800);
+}
+
+.text-red-500 {
+  color: var(--red-500);
+}
+
+.text-red-600 {
+  color: var(--red-600);
+}
+
+.bg-white {
+  background-color: var(--background);
+}
+
+.bg-gray-50 {
+  background-color: var(--gray-100);
+}
+
+.bg-red-50 {
+  background-color: var(--red-50);
+}
+
+.border-gray-200 {
+  border-color: var(--gray-200);
 }
