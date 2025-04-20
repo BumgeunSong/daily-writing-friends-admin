@@ -12,14 +12,21 @@ export default function LoginPage() {
     if (user) router.push('/admin')
   }, [user, router])
 
-  if (loading) return <p>Loading...</p>
-
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-bold mb-4">Admin Login</h1>
-      <button onClick={login} className="bg-blue-600 text-white px-4 py-2 rounded">
-        Sign in with Google
-      </button>
-    </div>
+    <main className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-lg">
+        <h1 className="text-2xl font-semibold text-center mb-6">Admin Login</h1>
+        {loading ? (
+          <p className="text-center text-gray-500">Checking auth...</p>
+        ) : (
+          <button
+            onClick={login}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition"
+          >
+            Sign in with Google
+          </button>
+        )}
+      </div>
+    </main>
   )
 }

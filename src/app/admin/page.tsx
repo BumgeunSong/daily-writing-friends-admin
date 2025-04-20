@@ -18,20 +18,48 @@ export default function AdminHome() {
     }
   }, [user, loading, router])
 
-  if (loading || usersLoading) return <p>Loading...</p>
-  if (!isAdmin) return <p>Access Denied</p>
+  if (loading || usersLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    )
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <p className="text-red-500 font-medium">Access Denied</p>
+      </div>
+    )
+  }
 
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-bold mb-4">Admin Dashboard</h1>
-      {users.map((u) => (
-        <div key={u.id} className="border p-2 mb-2 rounded">
-          <p><strong>Name:</strong> {u.name}</p>
-          <p><strong>Email:</strong> {u.email}</p>
-          <p><strong>Role:</strong> {u.role}</p>
+    <main className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-md p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+          <button
+            onClick={logout}
+            className="text-sm text-blue-600 underline hover:text-blue-800"
+          >
+            Logout
+          </button>
         </div>
-      ))}
-      <button onClick={logout} className="mt-4 underline text-blue-600">Logout</button>
-    </div>
+
+        <div className="space-y-4">
+          {users.map((u) => (
+            <div
+              key={u.id}
+              className="border border-gray-200 rounded-lg p-4 shadow-sm bg-gray-50"
+            >
+              <p><span className="font-medium">Name:</span> {u.name}</p>
+              <p><span className="font-medium">Email:</span> {u.email}</p>
+              <p><span className="font-medium">Role:</span> {u.role}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
   )
 }
