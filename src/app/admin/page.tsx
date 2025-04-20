@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { useCollection } from '@/hooks/useCollection'
 
+const ADMIN_EMAIL = 'isp1195@gmail.com'
+
 export default function AdminHome() {
   const { user, logout, loading } = useAuth()
   const { data: users, loading: usersLoading } = useCollection('users')
   const router = useRouter()
 
-  const isAdmin = user?.email === 'your@email.com'
+  const isAdmin = user?.email === ADMIN_EMAIL
 
   useEffect(() => {
     if (!loading && !user) {
@@ -55,7 +57,6 @@ export default function AdminHome() {
             >
               <p><span className="font-medium">Name:</span> {u.name}</p>
               <p><span className="font-medium">Email:</span> {u.email}</p>
-              <p><span className="font-medium">Role:</span> {u.role}</p>
             </div>
           ))}
         </div>
