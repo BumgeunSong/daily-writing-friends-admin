@@ -3,6 +3,9 @@
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Loader2, LogIn } from "lucide-react"
 
 export default function LoginPage() {
   const { user, login, loading } = useAuth()
@@ -13,20 +16,36 @@ export default function LoginPage() {
   }, [user, router])
 
   return (
-    <main className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="w-full max-w-md p-8 rounded-2xl shadow-lg" style={{ backgroundColor: 'var(--background)' }}>
-        <h1 className="text-2xl font-semibold text-center mb-6">관리자 로그인</h1>
-        {loading ? (
-          <p className="text-center text-gray-500">인증 확인 중...</p>
-        ) : (
-          <button
-            onClick={login}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition"
-          >
-            Google로 로그인
-          </button>
-        )}
-      </div>
-    </main>
+    <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-center">관리자 로그인</CardTitle>
+          <CardDescription className="text-center">
+            계속하려면 Google 계정으로 로그인하세요
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          {loading ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <Button 
+              className="w-full" 
+              size="lg" 
+              onClick={login}
+            >
+              <LogIn className="mr-2 h-4 w-4" />
+              Google로 로그인
+            </Button>
+          )}
+        </CardContent>
+        
+        <CardFooter className="text-xs text-center text-muted-foreground flex justify-center">
+          관리자 전용 페이지입니다
+        </CardFooter>
+      </Card>
+    </div>
   )
 }
