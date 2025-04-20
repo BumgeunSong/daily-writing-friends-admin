@@ -14,7 +14,7 @@ export function useCollection(
 ) {
   const [data, setData] = useState<DocumentData[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<any>(null)
+  const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -25,7 +25,7 @@ export function useCollection(
         const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
         setData(docs)
       } catch (err) {
-        setError(err)
+        setError(err instanceof Error ? err : new Error(String(err)))
       } finally {
         setLoading(false)
       }
