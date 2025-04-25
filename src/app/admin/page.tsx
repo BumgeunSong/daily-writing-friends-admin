@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { User, Users, Newspaper, Clock, MessageSquare } from "lucide-react"
 
-const ADMIN_EMAIL = 'isp1195@gmail.com'
+const ADMIN_EMAIL: Set<string> = new Set(['isp1195@gmail.com', 'bob070030@gmail.com'])
 
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth()
@@ -24,7 +24,7 @@ export default function AdminPage() {
   const { data: boards, loading: boardsLoading } = useCollection('boards')
   const router = useRouter()
 
-  const isAdmin = user?.email === ADMIN_EMAIL
+  const isAdmin = ADMIN_EMAIL.has(user?.email || '')
 
   // 인증 상태 확인 및 권한 없는 사용자 리디렉션
   useEffect(() => {
