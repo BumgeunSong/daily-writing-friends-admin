@@ -183,5 +183,5 @@ export interface Review {
  * UserApprovalPage에서 사용하는 WaitingUser 타입
  */
 export interface WaitingUser extends User {
-  previousPostsCount?: number
+  previousPostsCount?: number | null
 } 

@@ -1,8 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useCollection } from '@/hooks/useCollection'
-import { useDocument } from '@/hooks/useDocument'
 import { doc, updateDoc, getFirestore, getDoc, arrayRemove, collection, query, where, getDocs } from 'firebase/firestore'
 import { Check, UserCheck, X, Loader2, HelpCircle, AlertCircle, RefreshCw } from 'lucide-react'
 import { 
