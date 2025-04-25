@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { getFirestore, doc, onSnapshot } from 'firebase/firestore'
+import { getFirestore, doc, onSnapshot, DocumentData } from 'firebase/firestore'
 
-interface UseDocumentReturn {
-  document: any
+interface UseDocumentReturn<T extends DocumentData> {
+  document: (T & { id: string }) | null
   loading: boolean
   error: Error | null
 }
@@ -12,8 +12,8 @@ interface UseDocumentReturn {
  * @param path 문서 경로 (예: 'users/userId')
  * @returns 문서 데이터, 로딩 상태, 에러 상태
  */
-export function useDocument(path: string | null): UseDocumentReturn {
-  const [document, setDocument] = useState<any>(null)
+export function useDocument<T extends DocumentData>(path: string | null): UseDocumentReturn<T> {
+  const [document, setDocument] = useState<(T & { id: string }) | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<Error | null>(null)
 
@@ -36,7 +36,7 @@ export function useDocument(path: string | null): UseDocumentReturn {
         if (snapshot.exists()) {
           setDocument({
             id: snapshot.id,
-            ...snapshot.data()
+            ...snapshot.data() as T
           })
         } else {
           setDocument(null)

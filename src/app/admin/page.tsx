@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { User, Mail, Users, Newspaper, Clock, MessageSquare } from "lucide-react"
+import { User, Users, Newspaper, Clock, MessageSquare } from "lucide-react"
 
 const ADMIN_EMAIL = 'isp1195@gmail.com'
 
