@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { doc, updateDoc, getFirestore, getDoc, arrayRemove, collection, query, where, getDocs } from 'firebase/firestore'
 import { Check, UserCheck, X, Loader2, HelpCircle, AlertCircle, RefreshCw } from 'lucide-react'
 import { 
@@ -142,6 +142,26 @@ const fetchWaitingUsers = async (board: Board | null): Promise<WaitingUser[]> =>
 export default function UserApprovalPage() {
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null)
   const queryClient = useQueryClient()
+
+  // 로컬 스토리지에서 이전에 선택한 게시판 ID 불러오기
+  useEffect(() => {
+    const storedBoardId = localStorage.getItem('adminUserApproval_selectedBoardId')
+    if (storedBoardId) {
+      setSelectedBoardId(storedBoardId)
+    }
+  }, [])
+
+  // 선택한 게시판 ID를 로컬 스토리지에 저장
+  const handleBoardSelection = (value: string) => {
+    const boardId = value || null
+    setSelectedBoardId(boardId)
+    
+    if (boardId) {
+      localStorage.setItem('adminUserApproval_selectedBoardId', boardId)
+    } else {
+      localStorage.removeItem('adminUserApproval_selectedBoardId')
+    }
+  }
 
   // 게시판 목록 쿼리
   const { 
@@ -334,18 +354,25 @@ export default function UserApprovalPage() {
         <CardContent>
           <Select
             value={selectedBoardId || ""}
-            onValueChange={(value: string) => setSelectedBoardId(value || null)}
+            onValueChange={handleBoardSelection}
           >
             <SelectTrigger className="w-full sm:w-[300px]">
               <SelectValue placeholder="게시판 선택" />
             </SelectTrigger>
             <SelectContent>
               {boards && boards.length > 0 ? (
-                boards.map((board) => (
-                  <SelectItem key={board.id} value={board.id}>
-                    {board.title} {board.cohort ? `(코호트 ${board.cohort})` : ''}
-                  </SelectItem>
-                ))
+                [...boards]
+                  .sort((a, b) => {
+                    // 코호트 번호 기준 내림차순 정렬 (높은 번호 -> 낮은 번호)
+                    const cohortA = a.cohort || 0;
+                    const cohortB = b.cohort || 0;
+                    return cohortB - cohortA;
+                  })
+                  .map((board) => (
+                    <SelectItem key={board.id} value={board.id}>
+                      {board.title} {board.cohort ? `(코호트 ${board.cohort})` : ''}
+                    </SelectItem>
+                  ))
               ) : (
                 <SelectItem value="none" disabled>
                   게시판이 없습니다
