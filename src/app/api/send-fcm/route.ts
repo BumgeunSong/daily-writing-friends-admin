@@ -1,15 +1,11 @@
+import "server-only";
 import { NextRequest, NextResponse } from 'next/server'
+import { initAdmin } from '@/app/api/firebaseAdmin'
 import * as admin from 'firebase-admin'
-
-// Firebase Admin SDK 초기화 (이미 초기화된 경우 중복 방지)
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
-  })
-}
 
 export async function POST(req: NextRequest) {
   try {
+    await initAdmin()
     const { tokens, notification, data } = await req.json()
     if (!tokens || !Array.isArray(tokens) || tokens.length === 0) {
       return NextResponse.json({ success: false, message: '토큰이 필요합니다.' }, { status: 400 })
