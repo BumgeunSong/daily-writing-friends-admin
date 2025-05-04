@@ -54,8 +54,12 @@
 
 #### firebaseMessagingTokens
 **문서 ID**: `{firebaseMessagingTokenId}`
+| 필드명 | 타입 | 설명 |
+|---------|------|------|
+| token | string | firebase messaging token |
+| timestamp | string | 생성 시간 |
+| userAgent | string? | 디바이스 토큰 등록 시의 userAgent |
 
-*필드가 명시적으로 정의되지 않음*
 
 #### postings
 **문서 ID**: `{postingId}`
