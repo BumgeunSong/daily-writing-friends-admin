@@ -6,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Checkbox } from '@/components/ui/checkbox'
 import { AlertCircle, Smartphone, User2, Mail, Copy, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useState } from 'react'
+import { parseUserAgent } from '@/types/userAgent'
 
 interface Props {
   tokens: FirebaseMessagingTokenWithUser[]
@@ -64,6 +64,13 @@ export function FCMTokensTable({ tokens, selected, onSelect, onSelectAll, loadin
     )
   }
 
+  // 정렬: 최신순
+  const sortedTokens = [...tokens].sort((a, b) => {
+    const at = typeof a.timestamp === 'string' ? new Date(a.timestamp).getTime() : a.timestamp?.toDate?.()?.getTime?.() || 0;
+    const bt = typeof b.timestamp === 'string' ? new Date(b.timestamp).getTime() : b.timestamp?.toDate?.()?.getTime?.() || 0;
+    return bt - at;
+  });
+
   // 반응형: sm 이하에서는 카드, sm 이상에서는 테이블
   return (
     <div className="mt-4">
@@ -85,14 +92,13 @@ export function FCMTokensTable({ tokens, selected, onSelect, onSelectAll, loadin
                   </TableHead>
                   <TableHead>실명</TableHead>
                   <TableHead>닉네임</TableHead>
-                  <TableHead>이메일</TableHead>
                   <TableHead>토큰</TableHead>
                   <TableHead>userAgent</TableHead>
                   <TableHead>등록일시</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tokens.map(token => (
+                {sortedTokens.map(token => (
                   <TableRow key={token.id} className={selected.includes(token.id) ? 'bg-muted' : ''}>
                     <TableCell>
                       <Checkbox
@@ -103,14 +109,13 @@ export function FCMTokensTable({ tokens, selected, onSelect, onSelectAll, loadin
                     </TableCell>
                     <TableCell>{token.user.realName || <span className="text-gray-400">-</span>}</TableCell>
                     <TableCell>{token.user.nickname || <span className="text-gray-400">-</span>}</TableCell>
-                    <TableCell>{token.user.email || <span className="text-gray-400">-</span>}</TableCell>
-                    <TableCell className="max-w-[180px] truncate">
-                      <span className="font-mono text-xs select-all">{token.token.slice(0, 12)}...{token.token.slice(-6)}</span>
+                    <TableCell className="max-w-[120px] truncate">
+                      <span className="font-mono text-xs select-all">{token.token.slice(0, 10)}... </span>
                       <Button size="icon" variant="ghost" className="ml-1" onClick={() => navigator.clipboard.writeText(token.token)}>
                         <Copy className="h-4 w-4" />
                       </Button>
                     </TableCell>
-                    <TableCell className="max-w-[120px] truncate">{token.userAgent || <span className="text-gray-400">-</span>}</TableCell>
+                    <TableCell className="max-w-[120px] truncate">{parseUserAgent(token.userAgent)}</TableCell>
                     <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                       {typeof token.timestamp === 'string'
                         ? new Date(token.timestamp).toLocaleString('ko-KR')
@@ -125,7 +130,7 @@ export function FCMTokensTable({ tokens, selected, onSelect, onSelectAll, loadin
       </div>
       {/* 모바일 카드형 */}
       <div className="sm:hidden space-y-3">
-        {tokens.map(token => (
+        {sortedTokens.map(token => (
           <Card key={token.id} className={selected.includes(token.id) ? 'border-primary' : ''}>
             <CardContent className="flex flex-col gap-2 py-3 px-4">
               <div className="flex items-center gap-2">
@@ -139,19 +144,15 @@ export function FCMTokensTable({ tokens, selected, onSelect, onSelectAll, loadin
                 <span className="text-xs text-muted-foreground ml-2">{token.user.nickname || '-'}</span>
               </div>
               <div className="flex items-center gap-2 text-xs">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>{token.user.email || '-'}</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs">
                 <Smartphone className="h-4 w-4 text-muted-foreground" />
-                <span className="font-mono select-all truncate max-w-[120px]">{token.token.slice(0, 12)}...{token.token.slice(-6)}</span>
+                <span className="font-mono select-all truncate max-w-[100px]">{token.token.slice(0, 10)}... </span>
                 <Button size="icon" variant="ghost" className="ml-1" onClick={() => navigator.clipboard.writeText(token.token)}>
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
               <div className="flex items-center gap-2 text-xs">
                 <span className="text-muted-foreground">userAgent:</span>
-                <span className="truncate max-w-[120px]">{token.userAgent || '-'}</span>
+                <span className="truncate max-w-[120px]">{parseUserAgent(token.userAgent)}</span>
               </div>
               <div className="flex items-center gap-2 text-xs">
                 <span className="text-muted-foreground">등록일시:</span>

@@ -19,6 +19,16 @@ export default function MessagingAdminPage() {
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
   const [sendSuccess, setSendSuccess] = useState(false)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 10
+  const pagedTokens = tokens
+    .slice()
+    .sort((a, b) => {
+      const at = typeof a.timestamp === 'string' ? new Date(a.timestamp).getTime() : a.timestamp?.toDate?.()?.getTime?.() || 0;
+      const bt = typeof b.timestamp === 'string' ? new Date(b.timestamp).getTime() : b.timestamp?.toDate?.()?.getTime?.() || 0;
+      return bt - at;
+    })
+    .slice(0, page * PAGE_SIZE)
 
   // 개별 토큰 선택/해제
   const handleSelect = (tokenId: string) => {
@@ -76,13 +86,20 @@ export default function MessagingAdminPage() {
         </Button>
       </div>
       <FCMTokensTable
-        tokens={tokens}
+        tokens={pagedTokens}
         selected={selected}
         onSelect={handleSelect}
         onSelectAll={handleSelectAll}
         loading={isLoading}
         error={error as Error}
       />
+      {pagedTokens.length < tokens.length && (
+        <div className="flex justify-center mt-4">
+          <Button onClick={() => setPage(p => p + 1)} variant="outline" className="w-full sm:w-auto">
+            더 보기
+          </Button>
+        </div>
+      )}
       <SendFCMModal
         open={modalOpen}
         onOpenChange={setModalOpen}
