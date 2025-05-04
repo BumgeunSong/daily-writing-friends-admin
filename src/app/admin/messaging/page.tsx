@@ -59,8 +59,8 @@ export default function MessagingAdminPage() {
       } else {
         setSendError(res.error || res.message)
       }
-    } catch (e: any) {
-      setSendError(e.message)
+    } catch (e: unknown) {
+      setSendError(e instanceof Error ? e.message : String(e))
     } finally {
       setSending(false)
     }

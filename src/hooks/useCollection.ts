@@ -32,7 +32,7 @@ export function useCollection(
     }
 
     fetchData()
-  }, [collectionName, ...constraints])
+  }, [collectionName, JSON.stringify(constraints)])
 
   return { data, loading, error }
 }

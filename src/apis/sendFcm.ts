@@ -1,5 +1,3 @@
-import { FirebaseMessagingTokenWithUser } from '../types/firestore'
-
 export interface SendFcmPayload {
   tokens: string[]
   notification: {

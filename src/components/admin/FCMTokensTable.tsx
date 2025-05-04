@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Checkbox } from '@/components/ui/checkbox'
-import { AlertCircle, Smartphone, User2, Mail, Copy, Loader2 } from 'lucide-react'
+import { AlertCircle, Smartphone, User2, Copy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { parseUserAgent } from '@/types/userAgent'
 

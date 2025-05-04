@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       message: `${successCount}개 메시지 전송 성공, ${failureCount}개 실패`,
       results,
     })
-  } catch (error: any) {
-    return NextResponse.json({ success: false, message: 'FCM 전송 오류', error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 })
   }
 } 
