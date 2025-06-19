@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { collection, query, where, getDocs, getFirestore, Timestamp } from 'firebase/firestore'
+import { collection, query, where, getDocs, getFirestore, Timestamp, doc, getDoc } from 'firebase/firestore'
 import { Copy, Loader2, AlertCircle, RefreshCw, FileText } from 'lucide-react'
 import { 
   Card, 
@@ -34,7 +34,34 @@ import {
   useQueryClient 
 } from '@tanstack/react-query'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Board, Post } from '@/types/firestore'
+import { Board, Post, User } from '@/types/firestore'
+
+// 여러 사용자 정보를 한번에 조회하는 함수
+const fetchUsers = async (userIds: string[]): Promise<Record<string, User>> => {
+  const uniqueUserIds = [...new Set(userIds.filter(Boolean))]
+  const usersMap: Record<string, User> = {}
+  
+  try {
+    const db = getFirestore()
+    
+    for (const userId of uniqueUserIds) {
+      const userRef = doc(db, 'users', userId)
+      const userDoc = await getDoc(userRef)
+      
+      if (userDoc.exists()) {
+        usersMap[userId] = {
+          id: userDoc.id,
+          ...userDoc.data()
+        } as User
+      }
+    }
+    
+    return usersMap
+  } catch (error) {
+    console.error('Error fetching users:', error)
+    return {}
+  }
+}
 
 // 게시판 목록 조회 함수
 const fetchBoards = async (): Promise<Board[]> => {
@@ -144,9 +171,9 @@ export default function PostsPage() {
   }
 
   // 게시물 URL 복사 함수
-  const copyPostUrl = (boardId: string, postId: string, postTitle: string, authorName: string) => {
+  const copyPostUrl = (boardId: string, postId: string, postTitle: string, authorNickname: string) => {
     const url = `https://dailywritingfriends.com/board/${boardId}/post/${postId}`
-    const clipboardText = `${postTitle} by ${authorName}\n${url}`
+    const clipboardText = `${postTitle} by ${authorNickname}\n${url}`
     navigator.clipboard.writeText(clipboardText).then(() => {
       toast.success("게시물 링크가 복사되었습니다.")
     }).catch(() => {
@@ -176,6 +203,18 @@ export default function PostsPage() {
     queryFn: () => fetchPosts(selectedBoardId, dateRange),
     enabled: !!selectedBoardId,
     staleTime: 2 * 60 * 1000, // 2분
+  })
+
+  // 게시물 작성자들의 사용자 정보 조회
+  const authorIds = posts.map(post => post.authorId).filter(Boolean)
+  const { 
+    data: usersMap = {},
+    isLoading: usersLoading
+  } = useQuery({
+    queryKey: ['users', authorIds],
+    queryFn: () => fetchUsers(authorIds),
+    enabled: authorIds.length > 0,
+    staleTime: 10 * 60 * 1000, // 10분 (사용자 정보는 더 오래 캐시)
   })
 
   const selectedBoard = boards?.find(board => board.id === selectedBoardId)
@@ -320,10 +359,12 @@ export default function PostsPage() {
             </div>
           </CardHeader>
           <CardContent className="overflow-x-auto">
-            {postsLoading ? (
+            {postsLoading || usersLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-muted-foreground">게시물을 불러오는 중...</span>
+                <span className="ml-2 text-muted-foreground">
+                  {postsLoading ? '게시물을 불러오는 중...' : '사용자 정보를 불러오는 중...'}
+                </span>
               </div>
             ) : postsError ? (
               <Alert variant="destructive" className="my-4">
@@ -366,6 +407,9 @@ export default function PostsPage() {
                           : new Date(post.createdAt))
                       : null
                     
+                    const author = usersMap[post.authorId]
+                    const authorNickname = author?.nickname || '닉네임 없음'
+                    
                     return (
                       <TableRow key={post.id}>
                         <TableCell className="font-medium text-center">
@@ -382,7 +426,7 @@ export default function PostsPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          {post.authorName || '작성자 없음'}
+                          {authorNickname}
                         </TableCell>
                         <TableCell>
                           {createdAt ? (
@@ -414,7 +458,7 @@ export default function PostsPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => copyPostUrl(selectedBoardId, post.id, post.title || '제목 없음', post.authorName || '작성자 없음')}
+                            onClick={() => copyPostUrl(selectedBoardId, post.id, post.title || '제목 없음', authorNickname)}
                           >
                             <Copy className="h-4 w-4 mr-1" />
                             링크 복사
