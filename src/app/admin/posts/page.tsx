@@ -145,7 +145,7 @@ export default function PostsPage() {
 
   // 게시물 URL 복사 함수
   const copyPostUrl = (boardId: string, postId: string) => {
-    const url = `${window.location.origin}/boards/${boardId}/posts/${postId}`
+    const url = `https://dailywritingfriends.com/board/${boardId}/post/${postId}`
     navigator.clipboard.writeText(url).then(() => {
       toast.success("게시물 링크가 복사되었습니다.")
     }).catch(() => {
