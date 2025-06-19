@@ -144,9 +144,10 @@ export default function PostsPage() {
   }
 
   // 게시물 URL 복사 함수
-  const copyPostUrl = (boardId: string, postId: string) => {
+  const copyPostUrl = (boardId: string, postId: string, postTitle: string, authorName: string) => {
     const url = `https://dailywritingfriends.com/board/${boardId}/post/${postId}`
-    navigator.clipboard.writeText(url).then(() => {
+    const clipboardText = `${postTitle} by ${authorName}\n${url}`
+    navigator.clipboard.writeText(clipboardText).then(() => {
       toast.success("게시물 링크가 복사되었습니다.")
     }).catch(() => {
       toast.error("링크 복사 중 오류가 발생했습니다.")
@@ -413,7 +414,7 @@ export default function PostsPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => copyPostUrl(selectedBoardId, post.id)}
+                            onClick={() => copyPostUrl(selectedBoardId, post.id, post.title || '제목 없음', post.authorName || '작성자 없음')}
                           >
                             <Copy className="h-4 w-4 mr-1" />
                             링크 복사
