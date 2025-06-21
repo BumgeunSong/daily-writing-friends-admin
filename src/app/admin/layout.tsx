@@ -14,7 +14,8 @@ import {
   Menu,
   LogOut,
   XCircle,
-  UserCheck
+  UserCheck,
+  CircleDashed
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -39,6 +40,11 @@ const navItems: NavItem[] = [
     title: '신청 대기 사용자 승인',
     href: '/admin/user-approval',
     icon: <UserCheck className="h-5 w-5" />
+  },
+  {
+    title: '이탈 유저 관리',
+    href: '/admin/user-churn',
+    icon: <CircleDashed className="h-5 w-5" />
   },
   {
     title: '게시판 관리',
