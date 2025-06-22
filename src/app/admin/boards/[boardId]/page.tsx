@@ -342,6 +342,7 @@ export default function BoardDetailPage() {
                   <TableHead>닉네임</TableHead>
                   <TableHead>실명</TableHead>
                   <TableHead>이메일</TableHead>
+                  <TableHead>전화번호</TableHead>
                   <TableHead className="text-center">권한</TableHead>
                 </TableRow>
               </TableHeader>
@@ -359,6 +360,13 @@ export default function BoardDetailPage() {
                       </TableCell>
                       <TableCell>
                         {user.email || '이메일 없음'}
+                      </TableCell>
+                      <TableCell>
+                        {user.phoneNumber ? (
+                          user.phoneNumber
+                        ) : (
+                          <span className="text-gray-400">null</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-center">
                         {getPermissionBadge(permission)}
