@@ -154,16 +154,24 @@ export function SectionCard({ narrationId, section, sectionIndex }: SectionCardP
   }
 
   const handleUploadAudio = async () => {
+    console.log('🎤 handleUploadAudio called')
+    console.log('📦 recordingBlob:', recordingBlob)
+    console.log('📄 section:', section)
+    console.log('🔢 sectionIndex:', sectionIndex)
+    
     if (!recordingBlob) {
+      console.log('❌ No recording blob found')
       toast.error("먼저 오디오를 녹음해주세요.")
       return
     }
 
+    console.log('🚀 Starting upload process...')
     try {
       await uploadAudio(section.id, recordingBlob, sectionIndex)
+      console.log('🎉 Upload successful!')
       toast.success("오디오가 업로드되었습니다.")
     } catch (error) {
-      console.error('Failed to upload audio:', error)
+      console.error('💥 Failed to upload audio:', error)
       toast.error("오디오 업로드에 실패했습니다.")
     }
   }

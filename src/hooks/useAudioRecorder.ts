@@ -87,6 +87,10 @@ const useAudioRecorder: (
         _startTimer();
 
         recorder.addEventListener("dataavailable", (event) => {
+          console.log('🎵 Audio data available:', { 
+            blobSize: event.data.size, 
+            blobType: event.data.type 
+          });
           setRecordingBlob(event.data);
           recorder.stream.getTracks().forEach((t) => t.stop());
           setMediaRecorder(undefined);

@@ -2,27 +2,47 @@
 // Place these rules in your Firebase Storage security rules
 
 rules_version = '2';
+
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow read access to narration audio files for authenticated users
-    match /narrations/{narrationId}/{allPaths=**} {
-      allow read: if request.auth != null;
-      // Allow write access only to admin users
-      // You'll need to implement custom claims or check against admin user IDs
-      allow write: if request.auth != null && 
-        (request.auth.token.admin == true || 
-         request.auth.uid in ['admin-uid-1', 'admin-uid-2']); // Replace with actual admin UIDs
+    // 프로필 사진 접근 규칙
+    match /profilePhotos/{userId}/{allPaths=**} {
+      // 누구나 프로필 사진 읽기 가능
+      allow read: if true;
+      
+      // 인증된 사용자만 자신의 프로필 사진 업로드 가능
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Default rule for other storage paths
+    // 게시글 이미지 접근 규칙
+    match /postImages/{postId}/{allPaths=**} {
+      // 누구나 게시글 이미지 읽기 가능
+      allow read: if true;
+      
+      // 인증된 사용자만 게시글 이미지 업로드 가능
+      allow write: if request.auth != null && 
+        // 파일 크기 제한 (5MB)
+        request.resource.size <= 5 * 1024 * 1024 &&
+        // 이미지 파일 타입만 허용
+        request.resource.contentType.matches('image/.*');
+    }
+    
+    // 나레이션 오디오 파일 접근 규칙
+    match /narrations/{narrationId}/{allPaths=**} {
+      // 인증된 사용자만 나레이션 파일 읽기 가능
+      allow read: if request.auth != null;
+      
+      // 인증된 사용자만 나레이션 파일 업로드 가능 (관리자 대시보드용)
+      allow write: if request.auth != null &&
+        // 파일 크기 제한 (10MB)
+        request.resource.size <= 10 * 1024 * 1024 &&
+        // 오디오 파일 타입만 허용
+        request.resource.contentType.matches('audio/.*');
+    }
+    
+    // 기타 모든 경로에 대한 접근 거부
     match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if false;
     }
   }
 }
-
-// Note: Replace 'admin-uid-1', 'admin-uid-2' with actual admin user UIDs
-// Or implement custom claims for better admin role management
-// 
-// To set custom claims for admin users, use Firebase Admin SDK:
-// admin.auth().setCustomUserClaims(uid, { admin: true });

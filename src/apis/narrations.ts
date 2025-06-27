@@ -130,24 +130,33 @@ export const uploadSectionAudio = async (
   audioBlob: Blob, 
   sectionIndex: number
 ): Promise<void> => {
+  console.log('🎵 Starting audio upload:', { narrationId, sectionId, sectionIndex, blobSize: audioBlob.size })
+  
   const storagePath = `narrations/${narrationId}/${sectionIndex}.mp3`
   const storageRef = ref(storage, storagePath)
+  
+  console.log('📁 Storage path:', storagePath)
   
   // Delete existing file if it exists
   try {
     await deleteObject(storageRef)
+    console.log('🗑️ Deleted existing file')
   } catch (error) {
     // File might not exist, continue with upload
-    console.log('No existing file to delete:', error)
+    console.log('ℹ️ No existing file to delete:', error)
   }
 
   // Upload new file
-  await uploadBytes(storageRef, audioBlob)
+  console.log('⬆️ Uploading audio blob...')
+  const uploadResult = await uploadBytes(storageRef, audioBlob)
+  console.log('✅ Upload completed:', uploadResult.metadata.fullPath)
   
   // Update section with storage path
+  console.log('💾 Updating Firestore with storage path...')
   const sectionRef = doc(db, `narrations/${narrationId}/sections/${sectionId}`)
   await updateDoc(sectionRef, {
     storagePath,
     updatedAt: serverTimestamp()
   })
+  console.log('✅ Firestore updated with storagePath:', storagePath)
 }
