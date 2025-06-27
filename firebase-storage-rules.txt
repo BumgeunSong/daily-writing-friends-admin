@@ -1,0 +1,28 @@
+// Firebase Storage Rules for Narration Guide Recording Feature
+// Place these rules in your Firebase Storage security rules
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow read access to narration audio files for authenticated users
+    match /narrations/{narrationId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      // Allow write access only to admin users
+      // You'll need to implement custom claims or check against admin user IDs
+      allow write: if request.auth != null && 
+        (request.auth.token.admin == true || 
+         request.auth.uid in ['admin-uid-1', 'admin-uid-2']); // Replace with actual admin UIDs
+    }
+    
+    // Default rule for other storage paths
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+
+// Note: Replace 'admin-uid-1', 'admin-uid-2' with actual admin user UIDs
+// Or implement custom claims for better admin role management
+// 
+// To set custom claims for admin users, use Firebase Admin SDK:
+// admin.auth().setCustomUserClaims(uid, { admin: true });
