@@ -14,10 +14,9 @@ import {
 import { 
   ref, 
   uploadBytes, 
-  deleteObject,
-  getStorage
+  deleteObject
 } from 'firebase/storage'
-import { db } from '@/lib/firebase'
+import { db, storage } from '@/lib/firebase'
 import { Narration, NarrationSection } from '@/types/firestore'
 
 // Narration API functions
@@ -109,8 +108,6 @@ export const updateSection = async (
 }
 
 export const deleteSection = async (narrationId: string, sectionId: string): Promise<void> => {
-  const storage = getStorage()
-  
   // First, try to delete the audio file if it exists
   const storagePath = `narrations/${narrationId}/${sectionId}.mp3`
   const storageRef = ref(storage, storagePath)
@@ -133,7 +130,6 @@ export const uploadSectionAudio = async (
   audioBlob: Blob, 
   sectionIndex: number
 ): Promise<void> => {
-  const storage = getStorage()
   const storagePath = `narrations/${narrationId}/${sectionIndex}.mp3`
   const storageRef = ref(storage, storagePath)
   

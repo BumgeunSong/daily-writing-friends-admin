@@ -21,7 +21,8 @@ import {
 } from 'lucide-react'
 import { NarrationSection } from '@/types/firestore'
 import { useSection } from '@/hooks/useSection'
-import { getStorage, ref, getDownloadURL } from 'firebase/storage'
+import { ref, getDownloadURL } from 'firebase/storage'
+import { storage } from '@/lib/firebase'
 
 interface SectionCardProps {
   narrationId: string
@@ -40,7 +41,6 @@ export function SectionCard({ narrationId, section, sectionIndex }: SectionCardP
   const [isLoadingAudio, setIsLoadingAudio] = useState(false)
   
   const audioRef = useRef<HTMLAudioElement>(null)
-  const storage = getStorage()
   
   // Custom audio recorder hook
   const {
@@ -75,7 +75,7 @@ export function SectionCard({ narrationId, section, sectionIndex }: SectionCardP
     }
 
     loadExistingAudio()
-  }, [section.storagePath, storage])
+  }, [section.storagePath])
 
   const handleSaveSection = async () => {
     if (!title.trim() || !script.trim()) {
