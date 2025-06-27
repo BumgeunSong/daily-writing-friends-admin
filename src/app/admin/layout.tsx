@@ -15,7 +15,8 @@ import {
   LogOut,
   XCircle,
   UserCheck,
-  CircleDashed
+  CircleDashed,
+  Mic
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -60,6 +61,11 @@ const navItems: NavItem[] = [
     title: '게시물 관리',
     href: '/admin/posts',
     icon: <MessageSquare className="h-5 w-5" />
+  },
+  {
+    title: '내레이션 가이드',
+    href: '/admin/narration',
+    icon: <Mic className="h-5 w-5" />
   },
   {
     title: '설정',

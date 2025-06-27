@@ -1,0 +1,157 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    // Functions 서비스 계정을 위한 헬퍼 함수
+    function isServiceAccount() {
+      return request.auth.token.firebase.sign_in_provider == 'custom';
+    }
+    
+    match /topicCards/{topicCardId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Rules for narrations collection
+    match /narrations/{narrationId} {
+      // Allow authenticated users to read and write narrations
+      allow read, write: if request.auth != null;
+      
+      // Rules for sections subcollection
+      match /sections/{sectionId} {
+        // Allow authenticated users to read and write sections
+        allow read, write: if request.auth != null;
+      }
+    }
+    
+    // Rules for users collection
+    match /users/{userId} {
+      // Allow service account and authenticated users to read
+      allow read: if true;
+      // Allow service account to write
+      allow write: if isServiceAccount() || request.auth != null;
+      
+      match /notifications/{notificationId} {
+          // Allow any authenticated user to read comments
+        allow read: if request.auth != null
+        // Allow authenticated users to update notification (mark as read)
+        allow update, create, delete: if request.auth != null; 
+      }
+      
+      match /writingHistories/{writingHistoryId} {
+        // Allow service account to read/write
+        allow read: if request.auth != null;
+        allow write: if isServiceAccount();
+      }
+      
+      match /firebaseMessagingTokens/{firebaseMessagingTokenId} {
+        allow read, update, create, delete: if request.auth != null;
+      }
+      
+      match /postings/{postingId} {
+        allow read, update, create, delete: if request.auth != null;
+      }
+      
+      match /commentings/{commentingId} {
+        allow read, update, create, delete: if request.auth != null;
+      }
+      
+      match /replyings/{replyingId} {
+        allow read, update, create, delete: if request.auth != null;
+      }
+      
+      match /drafts/{draftId} {
+          allow read, update, create, delete: if request.auth != null;
+      }
+      
+      match /topicStates/{topicId} {
+            allow read, write: if request.auth != null && request.auth.uid == userId;
+          }
+      
+      match /blockedUsers/{blockedId} {
+        allow read, write: if request.auth != null;
+      }
+
+      match /blockedByUsers/{blockerId} {
+              allow read: if request.auth != null;
+              allow write: if request.auth != null && request.auth.uid == blockerId;
+            }
+    }
+
+// Rules for boards collection
+    match /boards/{boardId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+
+           match /reviews/{reviewId} {
+            allow read: if request.auth != null || isServiceAccount();
+            allow write: if request.auth != null;
+            }
+    
+      // Rules for posts subcollection
+      match /posts/{postId} {
+        allow read: if true;
+        allow create: if request.auth != null;
+        allow update, delete: if request.auth.uid == resource.data.authorId;
+        
+        // Rules for comments subcollection
+        match /comments/{commentId} {
+          // Allow anyone to read comments
+          allow read: if true; 
+          // Allow authenticated users to create comments
+          allow create: if request.auth != null; 
+          // Allow users to update or delete their own comments
+          allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId; 
+          
+          // 댓글에 대한 반응 규칙
+          match /reactions/{reactionId} {
+            // 모든 사용자가 반응을 읽을 수 있음
+            allow read: if true;
+            // 인증된 사용자만 반응을 생성할 수 있음
+            allow create: if request.auth != null && 
+                          request.resource.data.reactionUser.userId == request.auth.uid;
+            // 자신의 반응만 삭제할 수 있음
+            allow delete: if request.auth != null && 
+                          resource.data.reactionUser.userId == request.auth.uid;
+          }
+          
+          // Rules for replies subcollection
+          match /replies/{replyId} {
+            // Allow anyone to read replies
+            allow read: if true; 
+            // Allow authenticated users to create replies
+            allow create: if request.auth != null; 
+            // Allow users to update or delete their own replies
+            allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId; 
+            
+            // 답글에 대한 반응 규칙
+            match /reactions/{reactionId} {
+              // 모든 사용자가 반응을 읽을 수 있음
+              allow read: if true;
+              // 인증된 사용자만 반응을 생성할 수 있음
+              allow create: if request.auth != null && 
+                            request.resource.data.reactionUser.userId == request.auth.uid;
+              // 자신의 반응만 삭제할 수 있음
+              allow delete: if request.auth != null && 
+                            resource.data.reactionUser.userId == request.auth.uid;
+            }
+          }
+        }
+      }
+    }
+    
+    // CollectionGroup 쿼리를 위한 규칙
+    match /{path=**}/comments/{commentId} {
+      allow read: if request.auth != null;
+    }
+    
+    match /{path=**}/replies/{replyId} {
+      allow read: if request.auth != null;
+    }
+    
+    // 반응에 대한 CollectionGroup 쿼리 규칙
+    match /{path=**}/reactions/{reactionId} {
+      allow read: if request.auth != null;
+    }
+  }
+}

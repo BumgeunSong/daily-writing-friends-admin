@@ -201,4 +201,28 @@ export interface FirebaseMessagingToken {
  */
 export interface FirebaseMessagingTokenWithUser extends FirebaseMessagingToken {
   user: User
+}
+
+/**
+ * Narration 컬렉션의 문서 타입
+ */
+export interface Narration {
+  id: string
+  title: string
+  createdBy: string
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+
+/**
+ * NarrationSection 서브컬렉션의 문서 타입
+ */
+export interface NarrationSection {
+  id: string
+  title: string
+  script: string
+  pauseMinutes: number
+  storagePath: string | null
+  createdAt: Timestamp
+  updatedAt: Timestamp
 } 
