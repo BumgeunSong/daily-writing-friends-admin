@@ -12,9 +12,17 @@ export async function GET() {
     // Get the current template
     const template = await remoteConfig.getTemplate()
     
-    // Extract the values we need
-    const activeBoard = template.parameters?.active_board_id?.defaultValue?.value || ''
-    const upcomingBoard = template.parameters?.upcoming_board_id?.defaultValue?.value || ''
+    // Extract the values we need - handle different defaultValue types
+    const activeBoardParam = template.parameters?.active_board_id?.defaultValue
+    const upcomingBoardParam = template.parameters?.upcoming_board_id?.defaultValue
+    
+    // Type guard to safely extract string value
+    const activeBoard = (activeBoardParam && 'value' in activeBoardParam) 
+      ? String(activeBoardParam.value) 
+      : ''
+    const upcomingBoard = (upcomingBoardParam && 'value' in upcomingBoardParam) 
+      ? String(upcomingBoardParam.value) 
+      : ''
     
     return NextResponse.json({
       active_board_id: activeBoard,
@@ -51,15 +59,17 @@ export async function PUT(request: NextRequest) {
     // Get the current template
     const template = await remoteConfig.getTemplate()
     
-    // Update the parameters
-    template.parameters = {
-      ...template.parameters,
-      active_board_id: {
-        defaultValue: { value: active_board_id || '' }
-      },
-      upcoming_board_id: {
-        defaultValue: { value: upcoming_board_id || '' }
-      }
+    // Update the parameters with proper type structure
+    if (!template.parameters) {
+      template.parameters = {}
+    }
+    
+    template.parameters['active_board_id'] = {
+      defaultValue: { value: active_board_id || '' }
+    }
+    
+    template.parameters['upcoming_board_id'] = {
+      defaultValue: { value: upcoming_board_id || '' }
     }
     
     // Publish the updated template
