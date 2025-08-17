@@ -25,11 +25,12 @@ function getNextMonday(fromDate: Date): Date {
 }
 
 /**
- * 주어진 날짜로부터 4주 후 금요일을 반환하는 함수
+ * 주어진 날짜로부터 4주차 금요일을 반환하는 함수
  */
 function getFridayOf4thWeek(fromDate: Date): Date {
   const date = new Date(fromDate)
-  // 4주 = 28일에서 3일 뺀 25일 더하기 (월요일에서 금요일까지)
+  // 월요일(0일차)부터 4주차 금요일까지는 25일
+  // 1주차: 0-4일, 2주차: 7-11일, 3주차: 14-18일, 4주차: 21-25일
   date.setDate(date.getDate() + 25)
   date.setHours(23, 59, 59, 999)
   return date
