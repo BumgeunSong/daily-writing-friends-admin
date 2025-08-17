@@ -1,7 +1,7 @@
 'use client'
 
 import { collection, getDocs, getFirestore, Timestamp } from 'firebase/firestore'
-import { Eye, AlertCircle, RefreshCw, Newspaper } from 'lucide-react'
+import { Eye, AlertCircle, RefreshCw, Newspaper, Plus } from 'lucide-react'
 import { 
   Card, 
   CardContent, 
@@ -27,6 +27,8 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Board } from '@/types/firestore'
 import { useRouter } from 'next/navigation'
+import { useCreateUpcomingBoard } from '@/hooks/useCreateUpcomingBoard'
+import { toast } from 'sonner'
 
 // 게시판 목록 조회 함수
 const fetchBoards = async (): Promise<Board[]> => {
@@ -55,6 +57,7 @@ const fetchBoards = async (): Promise<Board[]> => {
 export default function BoardsPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const { createNextCohort, isCreating } = useCreateUpcomingBoard()
 
   // 게시판 목록 쿼리
   const { 
@@ -70,6 +73,17 @@ export default function BoardsPage() {
   // 게시판 상세 페이지로 이동
   const handleViewBoard = (boardId: string) => {
     router.push(`/admin/boards/${boardId}`)
+  }
+
+  // 새 코호트 생성
+  const handleCreateCohort = async () => {
+    try {
+      await createNextCohort()
+      toast.success('새 코호트가 성공적으로 생성되었습니다.')
+    } catch (error) {
+      console.error('Error creating cohort:', error)
+      toast.error('코호트 생성 중 오류가 발생했습니다.')
+    }
   }
 
   if (boardsLoading) {
@@ -136,6 +150,13 @@ export default function BoardsPage() {
                 코호트별로 정렬된 게시판 목록입니다.
               </CardDescription>
             </div>
+            <Button 
+              onClick={handleCreateCohort}
+              disabled={isCreating}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              {isCreating ? '생성 중...' : '새 코호트 생성'}
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="overflow-x-auto">
@@ -152,6 +173,7 @@ export default function BoardsPage() {
                   <TableHead>제목</TableHead>
                   <TableHead>설명</TableHead>
                   <TableHead>시작일</TableHead>
+                  <TableHead>종료일</TableHead>
                   <TableHead className="text-right">작업</TableHead>
                 </TableRow>
               </TableHeader>
@@ -161,6 +183,12 @@ export default function BoardsPage() {
                     ? (board.firstDay instanceof Timestamp 
                         ? board.firstDay.toDate() 
                         : new Date(board.firstDay))
+                    : null
+                  
+                  const lastDay = board.lastDay 
+                    ? (board.lastDay instanceof Timestamp 
+                        ? board.lastDay.toDate() 
+                        : new Date(board.lastDay))
                     : null
                   
                   return (
@@ -190,6 +218,22 @@ export default function BoardsPage() {
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {firstDay.toLocaleDateString('ko-KR', { 
+                                weekday: 'short'
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">날짜 없음</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {lastDay ? (
+                          <div>
+                            <div className="text-sm">
+                              {lastDay.toLocaleDateString('ko-KR')}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {lastDay.toLocaleDateString('ko-KR', { 
                                 weekday: 'short'
                               })}
                             </div>

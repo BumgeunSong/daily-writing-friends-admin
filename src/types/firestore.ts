@@ -32,6 +32,7 @@ export interface Board {
   description: string
   createdAt: Date | Timestamp
   firstDay?: Timestamp
+  lastDay?: Timestamp
   cohort?: number
   waitingUsersIds: string[]
 }
