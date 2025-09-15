@@ -19,17 +19,18 @@ interface UpdateBoardsParams {
 export function useRemoteConfig() {
   const queryClient = useQueryClient()
   const [error, setError] = useState<string | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Fetch config values from client-side Remote Config
   const fetchConfigValues = async (): Promise<RemoteConfigValues> => {
     try {
       // Fetch and activate latest values
       await fetchAndActivate(remoteConfig)
-      
+
       // Get values
       const activeBoard = getValue(remoteConfig, 'active_board_id').asString()
       const upcomingBoard = getValue(remoteConfig, 'upcoming_board_id').asString()
-      
+
       return {
         active_board_id: activeBoard,
         upcoming_board_id: upcomingBoard
@@ -46,16 +47,44 @@ export function useRemoteConfig() {
   }
 
   // Query for fetching config values
-  const { 
-    data: configValues, 
+  const {
+    data: configValues,
     isLoading,
-    refetch 
+    refetch
   } = useQuery({
     queryKey: ['remoteConfig'],
     queryFn: fetchConfigValues,
-    staleTime: 60000, // 1 minute
-    refetchInterval: 60000 // Auto-refetch every minute
+    staleTime: 30 * 1000, // 30 seconds - reduced for faster updates
+    gcTime: 60 * 1000, // 1 minute
+    refetchInterval: 30 * 1000 // Auto-refetch every 30 seconds
   })
+
+  // Force refresh function
+  const forceRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      // Set minimum fetch interval to 0 temporarily for force refresh
+      const originalInterval = remoteConfig.settings.minimumFetchIntervalMillis
+      remoteConfig.settings.minimumFetchIntervalMillis = 0
+
+      try {
+        // Fetch and activate with force refresh
+        const fetched = await fetchAndActivate(remoteConfig)
+        console.log('Force refresh completed, values updated:', fetched)
+
+        // Invalidate the query to update UI
+        await queryClient.invalidateQueries({ queryKey: ['remoteConfig'] })
+      } finally {
+        // Restore original interval
+        remoteConfig.settings.minimumFetchIntervalMillis = originalInterval
+      }
+    } catch (error) {
+      console.error('Error during force refresh:', error)
+      setError('Failed to refresh configuration')
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
 
   // Mutation for updating config values
   const updateMutation = useMutation({
@@ -102,20 +131,22 @@ export function useRemoteConfig() {
     // Current values
     activeBoardId: configValues?.active_board_id || '',
     upcomingBoardId: configValues?.upcoming_board_id || '',
-    
+
     // Loading states
     isLoading,
     isUpdating: updateMutation.isPending,
-    
+    isRefreshing,
+
     // Error state
     error,
-    
+
     // Actions
     updateBoards: updateMutation.mutate,
     updateBoardsAsync: updateMutation.mutateAsync,
     refetch,
+    forceRefresh,
     validateBoards,
-    
+
     // Reset error
     clearError: () => setError(null)
   }
