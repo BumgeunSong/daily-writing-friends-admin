@@ -22,9 +22,10 @@ export const storage = getStorage(app)
 // Initialize Remote Config
 export const remoteConfig = getRemoteConfig(app)
 
-// Set minimum fetch interval (1 minute for development, 12 hours for production)
-remoteConfig.settings.minimumFetchIntervalMillis = 
-  process.env.NODE_ENV === 'development' ? 60000 : 43200000
+// Set minimum fetch interval (10 seconds for development, 1 minute for production)
+// This allows more frequent updates when remote config values change
+remoteConfig.settings.minimumFetchIntervalMillis =
+  process.env.NODE_ENV === 'development' ? 10000 : 60000
 
 // Set default values
 remoteConfig.defaultConfig = {

@@ -63,12 +63,14 @@ export default function BoardsPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { createNextCohort, isCreating } = useCreateUpcomingBoard()
-  const { 
-    activeBoardId, 
-    upcomingBoardId, 
+  const {
+    activeBoardId,
+    upcomingBoardId,
     isLoading: configLoading,
     isUpdating,
+    isRefreshing,
     updateBoards,
+    forceRefresh,
     validateBoards,
     clearError
   } = useRemoteConfig()
@@ -114,23 +116,36 @@ export default function BoardsPage() {
   }
 
   // 활성 게시판 설정 저장
-  const handleSaveConfig = () => {
-    updateBoards(
-      {
-        activeBoardId: tempActiveId,
-        upcomingBoardId: tempUpcomingId
-      },
-      {
-        onSuccess: () => {
-          toast.success('활성 게시판 설정이 저장되었습니다.')
-          setIsEditingConfig(false)
+  const handleSaveConfig = async () => {
+    try {
+      // Force refresh to get latest values before updating
+      await forceRefresh()
+
+      // Small delay to ensure values are propagated
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      updateBoards(
+        {
+          activeBoardId: tempActiveId,
+          upcomingBoardId: tempUpcomingId
         },
-        onError: (error) => {
-          console.error('Error saving config:', error)
-          toast.error('설정 저장 중 오류가 발생했습니다.')
+        {
+          onSuccess: () => {
+            toast.success('활성 게시판 설정이 저장되었습니다.')
+            setIsEditingConfig(false)
+            // Refresh again after save to ensure UI shows latest values
+            forceRefresh()
+          },
+          onError: (error) => {
+            console.error('Error saving config:', error)
+            toast.error('설정 저장 중 오류가 발생했습니다.')
+          }
         }
-      }
-    )
+      )
+    } catch (error) {
+      console.error('Error refreshing config before save:', error)
+      toast.error('설정을 새로고침하는 중 오류가 발생했습니다.')
+    }
   }
 
   // 편집 취소
@@ -213,16 +228,32 @@ export default function BoardsPage() {
                 현재 진행 중인 게시판과 다음 예정 게시판을 설정합니다.
               </CardDescription>
             </div>
-            {!isEditingConfig && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditingConfig(true)}
-                disabled={configLoading}
-              >
-                편집
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {!isEditingConfig && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={forceRefresh}
+                    disabled={isRefreshing || configLoading}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      // Refresh before entering edit mode to get latest values
+                      await forceRefresh()
+                      setIsEditingConfig(true)
+                    }}
+                    disabled={configLoading || isRefreshing}
+                  >
+                    편집
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -327,11 +358,11 @@ export default function BoardsPage() {
           {/* 액션 버튼 */}
           {isEditingConfig && (
             <div className="flex gap-2 mt-4">
-              <Button 
+              <Button
                 onClick={handleSaveConfig}
-                disabled={!isValid || isUpdating}
+                disabled={!isValid || isUpdating || isRefreshing}
               >
-                {isUpdating ? '저장 중...' : '저장'}
+                {isRefreshing ? '새로고침 중...' : isUpdating ? '저장 중...' : '저장'}
               </Button>
               <Button 
                 variant="outline" 
