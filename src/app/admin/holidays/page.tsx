@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertCircle, Calendar, Plus, Edit2, Trash2, RefreshCw } from 'lucide-react'
+import { AlertCircle, Calendar, Plus, Trash2, RefreshCw } from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -30,7 +30,6 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
 import { useHolidayYears, useSaveHolidayYear, useDeleteHolidayYear } from '@/hooks/useHolidays'
 import { Holiday } from '@/types/firestore'
 import { toast } from 'sonner'
@@ -45,7 +44,6 @@ export default function HolidaysPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [newHolidayDate, setNewHolidayDate] = useState<string>('')
   const [newHolidayName, setNewHolidayName] = useState<string>('')
-  const [deletingYear, setDeletingYear] = useState<string>('')
   const [deletingHoliday, setDeletingHoliday] = useState<{ year: string; date: string } | null>(null)
 
   // Form validation
