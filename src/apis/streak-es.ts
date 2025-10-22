@@ -281,16 +281,19 @@ export const fetchRecentEvents = async (
   const q = query(
     eventsRef,
     where('dayKey', '>=', startDayKey),
-    orderBy('dayKey', 'desc'),
-    orderBy('seq', 'desc'),
+    orderBy('dayKey', 'asc'), // Must use 'asc' when using inequality filter
+    orderBy('seq', 'asc'),
     limit(100)
   )
 
   const snapshot = await getDocs(q)
-  return snapshot.docs.map(doc => ({
+  // Reverse the results to get newest first (since we ordered asc for Firestore constraint)
+  const events = snapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
   })) as Event[]
+
+  return events.reverse()
 }
 
 /**
