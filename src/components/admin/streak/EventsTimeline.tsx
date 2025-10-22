@@ -61,15 +61,13 @@ export function EventsTimeline({ events, timezone = 'Asia/Seoul' }: EventsTimeli
 
   // Filter and sort events
   const filteredAndSortedEvents = useMemo(() => {
-    let filtered = events.filter(e => selectedTypes.has(e.type))
+    const filtered = events.filter(e => selectedTypes.has(e.type))
 
     // Sort
-    filtered.sort((a, b) => {
+    return filtered.sort((a, b) => {
       const seqDiff = sortOrder === 'newest' ? b.seq - a.seq : a.seq - b.seq
       return seqDiff
     })
-
-    return filtered
   }, [events, selectedTypes, sortOrder])
 
   // Pagination

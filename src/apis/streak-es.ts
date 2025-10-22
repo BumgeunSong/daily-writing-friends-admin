@@ -8,7 +8,6 @@ import {
   limit,
   where,
   or,
-  startAfter,
   QueryConstraint
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
