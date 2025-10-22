@@ -72,8 +72,6 @@ export function getStatusBadgeVariant(status: ProjectionPhase2Status): 'default'
       return 'secondary' // Amber
     case 'missed':
       return 'destructive' // Red
-    default:
-      return 'outline'
   }
 }
 

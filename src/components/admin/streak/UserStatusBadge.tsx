@@ -19,8 +19,6 @@ export function UserStatusBadge({ status, timezone = 'Asia/Seoul' }: UserStatusB
         return '작성 가능'
       case 'missed':
         return '놓침'
-      default:
-        return status.type
     }
   }
 
@@ -32,8 +30,6 @@ export function UserStatusBadge({ status, timezone = 'Asia/Seoul' }: UserStatusB
         return `${status.currentPosts}/${status.postsRequired} 작성 완료 · 마감: ${formatTsInTz(status.deadline, timezone)}`
       case 'missed':
         return `${status.missedDate}에 연속 기록이 끊겼습니다`
-      default:
-        return ''
     }
   }
 
