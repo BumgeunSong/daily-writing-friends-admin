@@ -226,4 +226,20 @@ export interface NarrationSection {
   storagePath: string | null
   createdAt: Timestamp
   updatedAt: Timestamp
+}
+
+/**
+ * Holiday 타입 (공휴일 항목)
+ */
+export interface Holiday {
+  date: string // YYYY-MM-DD format
+  name: string
+}
+
+/**
+ * HolidayYear 컬렉션의 문서 타입
+ */
+export interface HolidayYear {
+  year: string // Document ID (e.g., "2025")
+  items: Holiday[]
 } 
