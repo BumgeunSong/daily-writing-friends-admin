@@ -6,11 +6,15 @@
 import { Timestamp } from 'firebase/firestore'
 
 /**
+ * Recovery status enum
+ */
+export type RecoveryStatus = 'none' | 'eligible' | 'partial' | 'success'
+
+/**
  * User 컬렉션의 문서 타입
  */
 export interface User {
-  id: string
-  uid: string
+  uid: string // Unique identifier for the user
   realName: string | null
   nickname: string | null
   email: string | null
@@ -19,8 +23,32 @@ export interface User {
   phoneNumber: string | null
   referrer: string | null
   boardPermissions: {
-    [boardId: string]: 'read' | 'write' | 'admin'
+    [boardId: string]: 'read' | 'write' // Permissions for each board
   }
+  updatedAt: Timestamp | null // 마지막 업데이트 시각 (Firestore Timestamp)
+  knownBuddy?: {
+    uid: string
+    nickname: string | null
+    profilePhotoURL: string | null
+  }
+  /**
+   * 나를 차단한 유저의 uid 배열 (Access Control)
+   * 이 배열에 내가 포함되어 있으면, 해당 유저의 모든 콘텐츠를 볼 수 없음
+   */
+  blockedBy?: string[]
+  /**
+   * 스트릭 복구 상태
+   * - 'none': 복구 대상/기간 아님
+   * - 'eligible': 복구 기회 있음 (2개 글 작성 필요)
+   * - 'partial': 1개만 작성됨 (1개 더 필요)
+   * - 'success': 복구 성공 (2개 작성 완료)
+   */
+  recoveryStatus?: RecoveryStatus
+  profile?: {
+    timezone?: string // IANA timezone identifier (e.g., 'Asia/Seoul')
+  }
+  // Legacy/compatibility field for document ID
+  id?: string
 }
 
 /**
@@ -242,4 +270,99 @@ export interface Holiday {
 export interface HolidayYear {
   year: string // Document ID (e.g., "2025")
   items: Holiday[]
+}
+
+/**
+ * Event types for event-sourced streak system
+ */
+export type EventType = 'PostCreated' | 'PostDeleted' | 'TimezoneChanged' | 'DayClosed'
+
+/**
+ * Event 서브컬렉션의 문서 타입 (users/{uid}/events/{eventId})
+ */
+export interface Event {
+  id: string
+  seq: number
+  createdAt: Timestamp
+  dayKey: string // YYYY-MM-DD format
+  type: EventType
+  payload?: Record<string, unknown>
+  idempotencyKey?: string
+}
+
+/**
+ * ProjectionPhase2 Status Types
+ */
+export interface OnStreakStatus {
+  type: 'onStreak'
+}
+
+export interface EligibleStatus {
+  type: 'eligible'
+  postsRequired: number
+  currentPosts: number
+  deadline: Timestamp
+}
+
+export interface MissedStatus {
+  type: 'missed'
+  missedDate: string // YYYY-MM-DD format
+}
+
+export type ProjectionPhase2Status = OnStreakStatus | EligibleStatus | MissedStatus
+
+/**
+ * ProjectionPhase2 문서 타입 (users/{uid}/streak_es/currentPhase2)
+ */
+export interface ProjectionPhase2 {
+  status: ProjectionPhase2Status
+  currentStreak: number
+  originalStreak: number
+  longestStreak: number
+  lastContributionDate: string | null // YYYY-MM-DD format
+  appliedSeq: number
+  projectorVersion: string
+}
+
+/**
+ * EventMeta 문서 타입 (users/{uid}/eventMeta/current)
+ */
+export interface EventMeta {
+  lastSeq: number
+}
+
+/**
+ * UserProfile 타입 (Derived type for streak admin panel)
+ * Extracted from User document fields for display purposes
+ */
+export interface UserProfile {
+  timezone?: string
+  displayName?: string | null
+  email?: string | null
+}
+
+/**
+ * Composite type for streak users overview table row
+ */
+export interface StreakUserRow {
+  uid: string
+  displayName: string | null
+  email: string | null
+  timezone: string
+  status: ProjectionPhase2Status
+  currentStreak: number
+  longestStreak: number
+  lastContributionDate: string | null
+  appliedSeq: number
+  latestSeq: number | null
+}
+
+/**
+ * Composite type for user detail page
+ */
+export interface UserDetailData {
+  uid: string
+  profile: UserProfile
+  projection: ProjectionPhase2
+  latestSeq: number | null
 } 
