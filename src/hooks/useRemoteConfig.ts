@@ -151,3 +151,28 @@ export function useRemoteConfig() {
     clearError: () => setError(null)
   }
 }
+
+/**
+ * Simplified hook to get a single remote config value
+ * @param key - The config key to fetch
+ */
+export function useRemoteConfigValue(key: keyof RemoteConfigValues) {
+  const fetchConfigValue = async (): Promise<string> => {
+    try {
+      await fetchAndActivate(remoteConfig)
+      return getValue(remoteConfig, key).asString()
+    } catch (error) {
+      console.error(`Error fetching remote config value for ${key}:`, error)
+      return ''
+    }
+  }
+
+  const { data: value = '', isLoading } = useQuery({
+    queryKey: ['remoteConfigValue', key],
+    queryFn: fetchConfigValue,
+    staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: 30 * 1000 // Auto-refetch every 30 seconds
+  })
+
+  return { value, isLoading }
+}
