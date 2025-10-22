@@ -208,14 +208,15 @@ export function UsersOverviewTable({ users }: UsersOverviewTableProps) {
               >
                 마지막 기여{getSortIndicator('lastContributionDate')}
               </TableHead>
-              <TableHead>동기화 상태</TableHead>
+              <TableHead className="text-center">Event Processed</TableHead>
+              <TableHead className="text-center">Event Created</TableHead>
               <TableHead className="text-right">작업</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   검색 결과가 없습니다
                 </TableCell>
               </TableRow>
@@ -247,13 +248,18 @@ export function UsersOverviewTable({ users }: UsersOverviewTableProps) {
                   <TableCell>
                     {user.lastContributionDate || '-'}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
+                    <span className="font-mono text-sm">
+                      {user.appliedSeq}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center">
                     <span className={
                       user.latestSeq !== null && user.appliedSeq < user.latestSeq
-                        ? 'text-destructive font-medium'
-                        : 'text-muted-foreground'
+                        ? 'font-mono text-sm text-destructive font-medium'
+                        : 'font-mono text-sm text-muted-foreground'
                     }>
-                      {calculateProjectionLag(user.appliedSeq, user.latestSeq)}
+                      {user.latestSeq !== null ? user.latestSeq : '-'}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
