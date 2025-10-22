@@ -14,7 +14,6 @@ import { db } from '@/lib/firebase'
 import {
   Event,
   ProjectionPhase2,
-  EventMeta,
   UserProfile,
   StreakUserRow,
   UserDetailData,
@@ -87,11 +86,10 @@ export const fetchStreakUsers = async (activeBoardId?: string): Promise<StreakUs
       // Skip if filtering by active users and this user is not in the list
       if (userIds && !userIds.includes(uid)) return
 
-      // Fetch projection, user data, and eventMeta in parallel
-      const [projectionDoc, userDoc, eventMetaDoc] = await Promise.all([
+      // Fetch projection and user data in parallel
+      const [projectionDoc, userDoc] = await Promise.all([
         getDoc(doc(db, `users/${uid}/streak_es/currentPhase2`)),
-        getDoc(doc(db, `users/${uid}`)),
-        getDoc(doc(db, `users/${uid}/eventMeta/current`))
+        getDoc(doc(db, `users/${uid}`))
       ])
 
       // Skip users without projection
@@ -108,8 +106,6 @@ export const fetchStreakUsers = async (activeBoardId?: string): Promise<StreakUs
         email: userData.email
       }
 
-      const eventMeta = eventMetaDoc.exists() ? (eventMetaDoc.data() as EventMeta) : null
-
       userRows.push({
         uid,
         displayName: profile.displayName || null,
@@ -119,8 +115,7 @@ export const fetchStreakUsers = async (activeBoardId?: string): Promise<StreakUs
         currentStreak: projection.currentStreak,
         longestStreak: projection.longestStreak,
         lastContributionDate: projection.lastContributionDate,
-        appliedSeq: projection.appliedSeq,
-        latestSeq: eventMeta?.lastSeq || null
+        appliedSeq: projection.appliedSeq
       })
     })
   )
@@ -166,27 +161,12 @@ export const fetchUserProfile = async (uid: string): Promise<UserProfile> => {
 }
 
 /**
- * Fetch event metadata (lastSeq)
- */
-export const fetchEventMeta = async (uid: string): Promise<EventMeta | null> => {
-  const eventMetaRef = doc(db, `users/${uid}/eventMeta/current`)
-  const snapshot = await getDoc(eventMetaRef)
-
-  if (!snapshot.exists()) {
-    return null
-  }
-
-  return snapshot.data() as EventMeta
-}
-
-/**
- * Fetch user detail data (projection + profile + eventMeta)
+ * Fetch user detail data (projection + profile)
  */
 export const fetchUserDetailData = async (uid: string): Promise<UserDetailData | null> => {
-  const [projection, profile, eventMeta] = await Promise.all([
+  const [projection, profile] = await Promise.all([
     fetchUserProjection(uid),
-    fetchUserProfile(uid),
-    fetchEventMeta(uid)
+    fetchUserProfile(uid)
   ])
 
   if (!projection) {
@@ -196,8 +176,7 @@ export const fetchUserDetailData = async (uid: string): Promise<UserDetailData |
   return {
     uid,
     profile,
-    projection,
-    latestSeq: eventMeta?.lastSeq || null
+    projection
   }
 }
 

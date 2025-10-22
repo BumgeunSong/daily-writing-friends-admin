@@ -325,13 +325,6 @@ export interface ProjectionPhase2 {
 }
 
 /**
- * EventMeta 문서 타입 (users/{uid}/eventMeta/current)
- */
-export interface EventMeta {
-  lastSeq: number
-}
-
-/**
  * UserProfile 타입 (Derived type for streak admin panel)
  * Extracted from User document fields for display purposes
  */
@@ -354,7 +347,6 @@ export interface StreakUserRow {
   longestStreak: number
   lastContributionDate: string | null
   appliedSeq: number
-  latestSeq: number | null
 }
 
 /**
@@ -364,5 +356,4 @@ export interface UserDetailData {
   uid: string
   profile: UserProfile
   projection: ProjectionPhase2
-  latestSeq: number | null
 } 

@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { ExternalLink, Eye } from 'lucide-react'
 import { StreakUserRow } from '@/types/firestore'
 import { UserStatusBadge } from './UserStatusBadge'
-import { calculateProjectionLag } from '@/lib/utils'
 import {
   Table,
   TableBody,
@@ -17,7 +16,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
@@ -32,7 +30,6 @@ export function UsersOverviewTable({ users }: UsersOverviewTableProps) {
   // Filter states
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [timezoneFilter, setTimezoneFilter] = useState<string>('all')
-  const [laggingOnly, setLaggingOnly] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
   // Sort states
@@ -63,10 +60,6 @@ export function UsersOverviewTable({ users }: UsersOverviewTableProps) {
       filtered = filtered.filter(u => u.timezone === timezoneFilter)
     }
 
-    // Lagging only filter
-    if (laggingOnly) {
-      filtered = filtered.filter(u => u.latestSeq !== null && u.appliedSeq < u.latestSeq)
-    }
 
     // Search filter (name or email)
     if (searchQuery) {
@@ -100,7 +93,7 @@ export function UsersOverviewTable({ users }: UsersOverviewTableProps) {
     })
 
     return filtered
-  }, [users, statusFilter, timezoneFilter, laggingOnly, searchQuery, sortField, sortDirection])
+  }, [users, statusFilter, timezoneFilter, searchQuery, sortField, sortDirection])
 
   // Pagination
   const totalPages = Math.ceil(filteredAndSortedUsers.length / itemsPerPage)
@@ -167,14 +160,6 @@ export function UsersOverviewTable({ users }: UsersOverviewTableProps) {
           </Select>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="lagging"
-            checked={laggingOnly}
-            onCheckedChange={(checked) => setLaggingOnly(checked as boolean)}
-          />
-          <Label htmlFor="lagging">지연 중만 보기</Label>
-        </div>
       </div>
 
       {/* Results count */}
@@ -208,15 +193,14 @@ export function UsersOverviewTable({ users }: UsersOverviewTableProps) {
               >
                 마지막 기여{getSortIndicator('lastContributionDate')}
               </TableHead>
-              <TableHead className="text-center">Event Processed</TableHead>
-              <TableHead className="text-center">Event Created</TableHead>
+              <TableHead className="text-center">Applied Seq</TableHead>
               <TableHead className="text-right">작업</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   검색 결과가 없습니다
                 </TableCell>
               </TableRow>
@@ -251,15 +235,6 @@ export function UsersOverviewTable({ users }: UsersOverviewTableProps) {
                   <TableCell className="text-center">
                     <span className="font-mono text-sm">
                       {user.appliedSeq}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <span className={
-                      user.latestSeq !== null && user.appliedSeq < user.latestSeq
-                        ? 'font-mono text-sm text-destructive font-medium'
-                        : 'font-mono text-sm text-muted-foreground'
-                    }>
-                      {user.latestSeq !== null ? user.latestSeq : '-'}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
