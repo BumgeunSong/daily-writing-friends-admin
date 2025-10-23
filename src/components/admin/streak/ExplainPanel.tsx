@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,9 +20,16 @@ import {
 export function ExplainPanel() {
   const params = useParams()
   const uid = params?.uid as string
+  const queryClient = useQueryClient()
 
   const { data, isLoading, error, refetch } = useExplainProjection(uid)
   const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set())
+
+  const handleRefresh = async () => {
+    await refetch()
+    // Invalidate detail data cache to show fresh projection
+    queryClient.invalidateQueries({ queryKey: ['streakUserDetail', uid] })
+  }
 
   const toggleStep = (seq: number) => {
     const newSet = new Set(expandedSteps)
@@ -102,7 +110,7 @@ export function ExplainPanel() {
             className="mt-4"
             variant="outline"
             size="sm"
-            onClick={() => refetch()}
+            onClick={handleRefresh}
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             다시 시도
@@ -124,7 +132,7 @@ export function ExplainPanel() {
               이벤트 스트림 상태 변화 분석 ({data.summary.totalEvents}개 이벤트, {data.summary.virtualClosures}개 가상 DayClosed)
             </CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={() => refetch()}>
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
             <RefreshCw className="h-4 w-4 mr-2" />
             새로고침
           </Button>
