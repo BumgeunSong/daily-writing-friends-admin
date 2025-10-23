@@ -18,7 +18,8 @@ import {
   UserProfile,
   StreakUserRow,
   UserDetailData,
-  User
+  User,
+  ExplainProjectionResponse
 } from '@/types/firestore'
 
 /**
@@ -370,4 +371,53 @@ function formatDateToDayKey(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+/**
+ * Explain user streak projection with step-by-step state transitions
+ */
+export interface ExplainProjectionOptions {
+  fromSeq?: number
+  toSeq?: number
+  includeEvents?: boolean
+}
+
+export const explainUserStreakProjection = async (
+  uid: string,
+  options: ExplainProjectionOptions = {}
+): Promise<ExplainProjectionResponse> => {
+  const baseUrl = process.env.NEXT_PUBLIC_CLOUD_FUNCTIONS_URL
+
+  if (!baseUrl) {
+    throw new Error('NEXT_PUBLIC_CLOUD_FUNCTIONS_URL is not configured')
+  }
+
+  const params = new URLSearchParams({ uid })
+  if (options.fromSeq !== undefined) params.append('fromSeq', String(options.fromSeq))
+  if (options.toSeq !== undefined) params.append('toSeq', String(options.toSeq))
+  if (options.includeEvents !== undefined) params.append('includeEvents', String(options.includeEvents))
+
+  const url = `${baseUrl}/explainUserStreakProjectionHttp?${params.toString()}`
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Explain projection failed (${response.status}): ${errorText}`)
+    }
+
+    const data = await response.json()
+    return data as ExplainProjectionResponse
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to explain projection for ${uid}: ${error.message}`)
+    }
+    throw error
+  }
 }

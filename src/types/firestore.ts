@@ -366,4 +366,60 @@ export interface UserDetailData {
   uid: string
   profile: UserProfile
   projection: ProjectionPhase2
+}
+
+/**
+ * Explainer API Types
+ */
+
+export interface StreakSnapshot {
+  status: string // 'onStreak' | 'eligible' | 'missed'
+  currentStreak: number
+  originalStreak: number
+  longestStreak: number
+  lastContributionDate: string | null
+  eligibleContext?: {
+    postsRequired: number
+    currentPosts: number
+    deadline: string // ISO timestamp
+    missedDate: string // ISO timestamp
+  }
+  missedContext?: {
+    missedPostDates: string[] // YYYY-MM-DD dates
+  }
+}
+
+export interface EventChange {
+  field: string
+  before: unknown
+  after: unknown
+  reason: string
+}
+
+export interface EventExplanation {
+  seq: number
+  type: EventType
+  dayKey: string
+  isVirtual: boolean
+  stateBefore: StreakSnapshot
+  stateAfter: StreakSnapshot
+  changes: EventChange[]
+  event?: Event
+}
+
+export interface ExplanationSummary {
+  totalEvents: number
+  virtualClosures: number
+  statusTransitions: number
+  streakChanges: number
+  evaluatedPeriod: {
+    start: string
+    end: string
+  }
+}
+
+export interface ExplainProjectionResponse {
+  finalProjection: ProjectionPhase2
+  eventExplanations: EventExplanation[]
+  summary: ExplanationSummary
 } 
