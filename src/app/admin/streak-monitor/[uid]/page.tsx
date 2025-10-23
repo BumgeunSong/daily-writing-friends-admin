@@ -69,9 +69,18 @@ export default function UserDetailPage() {
     )
   }
 
+  const handleRefresh = () => {
+    refetchDetail()
+    refetchEvents()
+  }
+
   return (
     <div className="space-y-6">
-      <UserDetailHeader data={userDetail} />
+      <UserDetailHeader
+        data={userDetail}
+        onRefresh={handleRefresh}
+        isRefreshing={isLoadingDetail || isLoadingEvents}
+      />
       <EventsTimeline events={events} timezone={userDetail.profile.timezone || 'Asia/Seoul'} />
       <ExplainPanel />
     </div>

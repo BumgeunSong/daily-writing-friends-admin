@@ -1,20 +1,22 @@
 'use client'
 
-import { ArrowLeft, ExternalLink, Copy } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Copy, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { UserDetailData } from '@/types/firestore'
 import { UserStatusBadge } from './UserStatusBadge'
-import { calculateProjectionLag, formatTsInTz } from '@/lib/utils'
+import { formatTsInTz } from '@/lib/utils'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
 interface UserDetailHeaderProps {
   data: UserDetailData
+  onRefresh?: () => void
+  isRefreshing?: boolean
 }
 
-export function UserDetailHeader({ data }: UserDetailHeaderProps) {
-  const { uid, profile, projection, latestSeq } = data
+export function UserDetailHeader({ data, onRefresh, isRefreshing = false }: UserDetailHeaderProps) {
+  const { uid, profile, projection } = data
 
   const handleCopyUid = () => {
     navigator.clipboard.writeText(uid)
@@ -52,6 +54,16 @@ export function UserDetailHeader({ data }: UserDetailHeaderProps) {
             </CardDescription>
           </div>
           <div className="flex gap-2">
+            {onRefresh && (
+              <Button
+                variant="outline"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                새로고침
+              </Button>
+            )}
             <Button variant="outline" asChild>
               <a
                 href={`https://dailywritingfriends.com/user/${uid}`}
@@ -131,16 +143,12 @@ export function UserDetailHeader({ data }: UserDetailHeaderProps) {
                 <span className="text-muted-foreground">적용된 Seq:</span>{' '}
                 <span className="font-medium">{projection.appliedSeq}</span>
               </div>
-              <div>
-                <span className="text-muted-foreground">동기화 상태:</span>{' '}
-                <span className={
-                  latestSeq !== null && projection.appliedSeq < latestSeq
-                    ? 'text-destructive font-medium'
-                    : 'text-muted-foreground'
-                }>
-                  {calculateProjectionLag(projection.appliedSeq, latestSeq)}
-                </span>
-              </div>
+              {projection.lastEvaluatedDayKey && (
+                <div>
+                  <span className="text-muted-foreground">마지막 평가일:</span>{' '}
+                  <span className="font-medium">{projection.lastEvaluatedDayKey}</span>
+                </div>
+              )}
               <div>
                 <span className="text-muted-foreground">프로젝터 버전:</span>{' '}
                 <span className="font-mono text-xs">{projection.projectorVersion}</span>

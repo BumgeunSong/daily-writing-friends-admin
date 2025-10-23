@@ -2,9 +2,10 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { ExternalLink, Eye } from 'lucide-react'
+import { ExternalLink, Eye, RefreshCw, Check } from 'lucide-react'
 import { StreakUserRow } from '@/types/firestore'
 import { UserStatusBadge } from './UserStatusBadge'
+import { useComputeProjection } from '@/hooks/useComputeProjection'
 import {
   Table,
   TableBody,
@@ -39,6 +40,10 @@ export function UsersOverviewTable({ users }: UsersOverviewTableProps) {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 25
+
+  // Refresh state tracking
+  const [refreshedUsers, setRefreshedUsers] = useState<Set<string>>(new Set())
+  const { mutate: refreshProjection, isPending } = useComputeProjection()
 
   // Get unique timezones
   const timezones = useMemo(() => {
@@ -114,6 +119,22 @@ export function UsersOverviewTable({ users }: UsersOverviewTableProps) {
   const getSortIndicator = (field: SortField) => {
     if (sortField !== field) return null
     return sortDirection === 'asc' ? ' ↑' : ' ↓'
+  }
+
+  const handleRefreshUser = (uid: string) => {
+    refreshProjection(uid, {
+      onSuccess: () => {
+        // Show checkmark briefly
+        setRefreshedUsers(prev => new Set(prev).add(uid))
+        setTimeout(() => {
+          setRefreshedUsers(prev => {
+            const next = new Set(prev)
+            next.delete(uid)
+            return next
+          })
+        }, 2000)
+      }
+    })
   }
 
   return (
@@ -193,14 +214,13 @@ export function UsersOverviewTable({ users }: UsersOverviewTableProps) {
               >
                 마지막 기여{getSortIndicator('lastContributionDate')}
               </TableHead>
-              <TableHead className="text-center">Applied Seq</TableHead>
               <TableHead className="text-right">작업</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   검색 결과가 없습니다
                 </TableCell>
               </TableRow>
@@ -232,13 +252,29 @@ export function UsersOverviewTable({ users }: UsersOverviewTableProps) {
                   <TableCell>
                     {user.lastContributionDate || '-'}
                   </TableCell>
-                  <TableCell className="text-center">
-                    <span className="font-mono text-sm">
-                      {user.appliedSeq}
-                    </span>
-                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-2 justify-end">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleRefreshUser(user.uid)}
+                              disabled={isPending}
+                            >
+                              {refreshedUsers.has(user.uid) ? (
+                                <Check className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <RefreshCw className={`h-4 w-4 ${isPending ? 'animate-spin' : ''}`} />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>프로젝션 새로고침</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                       <Button
                         size="sm"
                         variant="outline"

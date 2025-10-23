@@ -8,7 +8,8 @@ import {
   limit,
   where,
   or,
-  QueryConstraint
+  QueryConstraint,
+  Timestamp
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import {
@@ -19,6 +20,81 @@ import {
   UserDetailData,
   User
 } from '@/types/firestore'
+
+/**
+ * Convert API response to ProjectionPhase2 with proper Firestore Timestamp objects
+ */
+function convertApiResponseToProjection(data: Record<string, unknown>): ProjectionPhase2 {
+  const rawData = data as {
+    status: { type: string; deadline?: { seconds: number; nanoseconds?: number; _seconds?: number; _nanoseconds?: number } }
+    currentStreak: number
+    originalStreak: number
+    longestStreak: number
+    lastContributionDate: string | null
+    appliedSeq: number
+    projectorVersion: string
+    lastEvaluatedDayKey?: string
+  }
+
+  const projection: ProjectionPhase2 = {
+    status: rawData.status as ProjectionPhase2['status'],
+    currentStreak: rawData.currentStreak,
+    originalStreak: rawData.originalStreak,
+    longestStreak: rawData.longestStreak,
+    lastContributionDate: rawData.lastContributionDate,
+    appliedSeq: rawData.appliedSeq,
+    projectorVersion: rawData.projectorVersion,
+    lastEvaluatedDayKey: rawData.lastEvaluatedDayKey
+  }
+
+  // Convert deadline timestamp if present (for 'eligible' status)
+  if (projection.status.type === 'eligible' && rawData.status.deadline) {
+    const deadlineData = rawData.status.deadline
+    // Convert from JSON timestamp format to Firestore Timestamp
+    projection.status.deadline = new Timestamp(
+      deadlineData.seconds || deadlineData._seconds || 0,
+      deadlineData.nanoseconds || deadlineData._nanoseconds || 0
+    )
+  }
+
+  return projection
+}
+
+/**
+ * Call the Cloud Function compute endpoint to get fresh projection
+ * This performs on-demand computation and write-behind caching
+ */
+export const computeProjection = async (uid: string): Promise<ProjectionPhase2> => {
+  const baseUrl = process.env.NEXT_PUBLIC_CLOUD_FUNCTIONS_URL
+
+  if (!baseUrl) {
+    throw new Error('NEXT_PUBLIC_CLOUD_FUNCTIONS_URL is not configured')
+  }
+
+  const url = `${baseUrl}/computeUserStreakProjectionHttp?uid=${uid}`
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Compute projection failed (${response.status}): ${errorText}`)
+    }
+
+    const data = await response.json()
+    return convertApiResponseToProjection(data)
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to compute projection for ${uid}: ${error.message}`)
+    }
+    throw error
+  }
+}
 
 /**
  * Fetch users with write permission to specific boards
@@ -57,7 +133,7 @@ export const fetchUsersWithBoardPermission = async (boardIds: string[]): Promise
 }
 
 /**
- * Fetch all users with their streak projections and profiles
+ * Fetch all users with their streak projections (computed on-demand) and profiles
  * @param activeBoardId - Optional board ID to filter only active users
  */
 export const fetchStreakUsers = async (activeBoardId?: string): Promise<StreakUserRow[]> => {
@@ -76,49 +152,59 @@ export const fetchStreakUsers = async (activeBoardId?: string): Promise<StreakUs
   const usersRef = collection(db, 'users')
   const usersSnapshot = await getDocs(usersRef)
 
+  // Filter users if needed
+  const targetUsers = usersSnapshot.docs.filter(docSnapshot => {
+    if (!userIds) return true // Include all if no filter
+    return userIds.includes(docSnapshot.id)
+  })
+
   const userRows: StreakUserRow[] = []
 
-  // Fetch projection and profile for each user in parallel
-  await Promise.all(
-    usersSnapshot.docs.map(async (userDocSnapshot) => {
-      const uid = userDocSnapshot.id
+  // Batch compute projections with concurrency control
+  const BATCH_SIZE = 15
+  for (let i = 0; i < targetUsers.length; i += BATCH_SIZE) {
+    const batch = targetUsers.slice(i, i + BATCH_SIZE)
 
-      // Skip if filtering by active users and this user is not in the list
-      if (userIds && !userIds.includes(uid)) return
+    const batchResults = await Promise.all(
+      batch.map(async (userDocSnapshot) => {
+        const uid = userDocSnapshot.id
 
-      // Fetch projection and user data in parallel
-      const [projectionDoc, userDoc] = await Promise.all([
-        getDoc(doc(db, `users/${uid}/streak_es/currentPhase2`)),
-        getDoc(doc(db, `users/${uid}`))
-      ])
+        try {
+          // Compute fresh projection via Cloud Function
+          const projection = await computeProjection(uid)
 
-      // Skip users without projection
-      if (!projectionDoc.exists()) return
+          // Get user data for profile
+          const userData = userDocSnapshot.data() as User
+          const profileMap = userData.profile || {}
+          const profile: UserProfile = {
+            timezone: profileMap.timezone,
+            displayName: userData.realName || userData.nickname || userData.email || null,
+            email: userData.email
+          }
 
-      const projection = projectionDoc.data() as ProjectionPhase2
-
-      // Extract profile from user document (profile is a Map field)
-      const userData = userDoc.exists() ? (userDoc.data() as User) : ({} as Partial<User>)
-      const profileMap = userData.profile || {}
-      const profile: UserProfile = {
-        timezone: profileMap.timezone,
-        displayName: userData.realName || userData.nickname || userData.email || null,
-        email: userData.email
-      }
-
-      userRows.push({
-        uid,
-        displayName: profile.displayName || null,
-        email: profile.email || null,
-        timezone: profile.timezone || 'Asia/Seoul', // Default timezone
-        status: projection.status,
-        currentStreak: projection.currentStreak,
-        longestStreak: projection.longestStreak,
-        lastContributionDate: projection.lastContributionDate,
-        appliedSeq: projection.appliedSeq
+          return {
+            uid,
+            displayName: profile.displayName || null,
+            email: profile.email || null,
+            timezone: profile.timezone || 'Asia/Seoul', // Default timezone
+            status: projection.status,
+            currentStreak: projection.currentStreak,
+            longestStreak: projection.longestStreak,
+            lastContributionDate: projection.lastContributionDate,
+            appliedSeq: projection.appliedSeq
+          } as StreakUserRow
+        } catch (error) {
+          console.error(`Failed to compute projection for user ${uid}:`, error)
+          return null // Skip users with compute errors
+        }
       })
+    )
+
+    // Add successful results to userRows
+    batchResults.forEach(result => {
+      if (result) userRows.push(result)
     })
-  )
+  }
 
   return userRows
 }
@@ -161,22 +247,23 @@ export const fetchUserProfile = async (uid: string): Promise<UserProfile> => {
 }
 
 /**
- * Fetch user detail data (projection + profile)
+ * Fetch user detail data (computed projection + profile)
  */
 export const fetchUserDetailData = async (uid: string): Promise<UserDetailData | null> => {
-  const [projection, profile] = await Promise.all([
-    fetchUserProjection(uid),
-    fetchUserProfile(uid)
-  ])
+  try {
+    const [projection, profile] = await Promise.all([
+      computeProjection(uid), // Use compute endpoint instead of cached projection
+      fetchUserProfile(uid)
+    ])
 
-  if (!projection) {
+    return {
+      uid,
+      profile,
+      projection
+    }
+  } catch (error) {
+    console.error(`Failed to fetch user detail for ${uid}:`, error)
     return null
-  }
-
-  return {
-    uid,
-    profile,
-    projection
   }
 }
 

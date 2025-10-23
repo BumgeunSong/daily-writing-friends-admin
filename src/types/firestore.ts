@@ -313,6 +313,7 @@ export type ProjectionPhase2Status = OnStreakStatus | EligibleStatus | MissedSta
 
 /**
  * ProjectionPhase2 문서 타입 (users/{uid}/streak_es/currentPhase2)
+ * Also returned by compute endpoint: GET /computeUserStreakProjection?uid={uid}
  */
 export interface ProjectionPhase2 {
   status: ProjectionPhase2Status
@@ -322,6 +323,15 @@ export interface ProjectionPhase2 {
   lastContributionDate: string | null // YYYY-MM-DD format
   appliedSeq: number
   projectorVersion: string
+  lastEvaluatedDayKey?: string // YYYY-MM-DD format
+}
+
+/**
+ * EventMeta document type (users/{uid}/eventMeta/meta)
+ */
+export interface EventMeta {
+  lastSeq: number
+  lastClosedLocalDate?: string
 }
 
 /**

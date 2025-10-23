@@ -75,7 +75,7 @@ const navItems: NavItem[] = [
     icon: <Calendar className="h-5 w-5" />
   },
   {
-    title: 'Streak Monitor (Phase 2)',
+    title: 'Streak Monitor (Phase 2.1)',
     href: '/admin/streak-monitor',
     icon: <Activity className="h-5 w-5" />
   },

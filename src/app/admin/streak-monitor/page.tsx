@@ -46,9 +46,9 @@ export default function StreakMonitorPage() {
     return (
       <div className="space-y-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Streak Monitor (Phase 2)</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Streak Monitor (Phase 2.1)</h1>
           <p className="text-muted-foreground">
-            사용자들의 연속 기록 상태를 모니터링합니다
+            사용자들의 연속 기록 상태를 모니터링합니다 (On-Demand Projection)
           </p>
         </div>
         <Alert variant="destructive">
@@ -71,9 +71,9 @@ export default function StreakMonitorPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Streak Monitor (Phase 2)</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Streak Monitor (Phase 2.1)</h1>
         <p className="text-muted-foreground">
-          사용자들의 연속 기록 상태를 모니터링합니다
+          사용자들의 연속 기록 상태를 모니터링합니다 (On-Demand Projection)
         </p>
       </div>
 
