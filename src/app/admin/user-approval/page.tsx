@@ -490,10 +490,10 @@ export default function UserApprovalPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleRejectUser(user.id)}
-                            disabled={rejectUserMutation.isPending && rejectUserMutation.variables === user.id}
+                            onClick={() => handleRejectUser(user.uid)}
+                            disabled={rejectUserMutation.isPending && rejectUserMutation.variables === user.uid}
                           >
-                            {rejectUserMutation.isPending && rejectUserMutation.variables === user.id ? (
+                            {rejectUserMutation.isPending && rejectUserMutation.variables === user.uid ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               <X className="h-4 w-4 mr-1" />
@@ -502,10 +502,10 @@ export default function UserApprovalPage() {
                           </Button>
                           <Button
                             size="sm"
-                            onClick={() => handleApproveUser(user.id)}
-                            disabled={approveUserMutation.isPending && approveUserMutation.variables === user.id}
+                            onClick={() => handleApproveUser(user.uid)}
+                            disabled={approveUserMutation.isPending && approveUserMutation.variables === user.uid}
                           >
-                            {approveUserMutation.isPending && approveUserMutation.variables === user.id ? (
+                            {approveUserMutation.isPending && approveUserMutation.variables === user.uid ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               <Check className="h-4 w-4 mr-1" />

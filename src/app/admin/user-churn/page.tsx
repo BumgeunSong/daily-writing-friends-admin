@@ -91,8 +91,8 @@ const fetchChurningUsers = async (board: Board | null): Promise<User[]> => {
     // 이탈 사용자 필터링: 대기 목록에도 없고 권한도 없는 사용자
     const churningUsers = allUsers.filter(user => {
       // 대기 목록에 있는 사용자 제외
-      const isInWaitingList = board.waitingUsersIds?.includes(user.id) || false
-      
+      const isInWaitingList = board.waitingUsersIds?.includes(user.uid) || false
+
       // 해당 게시판에 대한 권한이 있는 사용자 제외
       const hasPermission = user.boardPermissions && user.boardPermissions[board.id]
       

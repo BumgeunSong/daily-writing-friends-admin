@@ -17,7 +17,8 @@ import {
   UserCheck,
   CircleDashed,
   Mic,
-  Calendar
+  Calendar,
+  Activity
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -72,6 +73,11 @@ const navItems: NavItem[] = [
     title: '공휴일 관리',
     href: '/admin/holidays',
     icon: <Calendar className="h-5 w-5" />
+  },
+  {
+    title: 'Streak Monitor (Phase 2)',
+    href: '/admin/streak-monitor',
+    icon: <Activity className="h-5 w-5" />
   },
   {
     title: '설정',
