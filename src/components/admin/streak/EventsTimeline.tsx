@@ -22,7 +22,8 @@ interface EventsTimelineProps {
   timezone?: string
 }
 
-const EVENT_TYPES: EventType[] = ['PostCreated', 'PostDeleted', 'TimezoneChanged', 'DayClosed']
+// Phase 2.1: DayClosed events are virtual (not persisted), so exclude from filters
+const EVENT_TYPES: EventType[] = ['PostCreated', 'PostDeleted', 'TimezoneChanged']
 
 export function EventsTimeline({ events, timezone = 'Asia/Seoul' }: EventsTimelineProps) {
   // Fetch holiday data
