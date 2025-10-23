@@ -120,14 +120,10 @@ export function UserDetailHeader({ data, onRefresh, isRefreshing = false }: User
             </div>
           </div>
 
-          {/* Contribution */}
+          {/* User Info */}
           <div>
-            <div className="text-sm font-medium text-muted-foreground mb-2">기여 정보</div>
+            <div className="text-sm font-medium text-muted-foreground mb-2">사용자 정보</div>
             <div className="space-y-1 text-sm">
-              <div>
-                <span className="text-muted-foreground">마지막 기여:</span>{' '}
-                <span className="font-medium">{projection.lastContributionDate || '-'}</span>
-              </div>
               <div>
                 <span className="text-muted-foreground">타임존:</span>{' '}
                 <span className="font-medium">{profile.timezone || 'Asia/Seoul'}</span>

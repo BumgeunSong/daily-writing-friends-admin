@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { Event, EventType } from '@/types/firestore'
 import { formatTsInTz } from '@/lib/utils'
+import { useHolidayYears } from '@/hooks/useHolidays'
 import {
   Table,
   TableBody,
@@ -14,6 +15,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { CheckCircle2, XCircle } from 'lucide-react'
 
 interface EventsTimelineProps {
   events: Event[]
@@ -23,9 +25,36 @@ interface EventsTimelineProps {
 const EVENT_TYPES: EventType[] = ['PostCreated', 'PostDeleted', 'TimezoneChanged', 'DayClosed']
 
 export function EventsTimeline({ events, timezone = 'Asia/Seoul' }: EventsTimelineProps) {
+  // Fetch holiday data
+  const { data: holidayYears = [] } = useHolidayYears()
+
   // Filter states
   const [selectedTypes, setSelectedTypes] = useState<Set<EventType>>(new Set(EVENT_TYPES))
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
+
+  // Build holiday set for quick lookup
+  const holidaySet = useMemo(() => {
+    const set = new Set<string>()
+    holidayYears.forEach(yearData => {
+      yearData.items.forEach(holiday => {
+        set.add(holiday.date) // YYYY-MM-DD format
+      })
+    })
+    return set
+  }, [holidayYears])
+
+  // Check if a date is a working day (not weekend, not holiday)
+  const isWorkingDay = (dayKey: string): boolean => {
+    // Check if it's a holiday
+    if (holidaySet.has(dayKey)) return false
+
+    // Check if it's weekend
+    const date = new Date(dayKey)
+    const dayOfWeek = date.getDay() // 0 = Sunday, 6 = Saturday
+    if (dayOfWeek === 0 || dayOfWeek === 6) return false
+
+    return true
+  }
 
   // Get timezone abbreviation for display
   const getTimezoneAbbreviation = (tz: string): string => {
@@ -169,6 +198,7 @@ export function EventsTimeline({ events, timezone = 'Asia/Seoul' }: EventsTimeli
                 <TableHead className="w-[80px]">Seq</TableHead>
                 <TableHead className="w-[140px]">타입</TableHead>
                 <TableHead className="w-[120px]">dayKey</TableHead>
+                <TableHead className="w-[100px] text-center">Working Day</TableHead>
                 <TableHead>생성 시각 ({getTimezoneAbbreviation(timezone)})</TableHead>
                 <TableHead>상세</TableHead>
               </TableRow>
@@ -176,28 +206,38 @@ export function EventsTimeline({ events, timezone = 'Asia/Seoul' }: EventsTimeli
             <TableBody>
               {paginatedEvents.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     필터된 이벤트가 없습니다
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedEvents.map((event) => (
-                  <TableRow key={event.id}>
-                    <TableCell className="font-mono text-xs">{event.seq}</TableCell>
-                    <TableCell>
-                      <Badge variant={getEventTypeBadgeVariant(event.type)}>
-                        {event.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{event.dayKey}</TableCell>
-                    <TableCell className="text-sm">
-                      {formatTsInTz(event.createdAt, timezone)}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatPayload(event)}
-                    </TableCell>
-                  </TableRow>
-                ))
+                paginatedEvents.map((event) => {
+                  const workingDay = isWorkingDay(event.dayKey)
+                  return (
+                    <TableRow key={event.id}>
+                      <TableCell className="font-mono text-xs">{event.seq}</TableCell>
+                      <TableCell>
+                        <Badge variant={getEventTypeBadgeVariant(event.type)}>
+                          {event.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{event.dayKey}</TableCell>
+                      <TableCell className="text-center">
+                        {workingDay ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-600 inline" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-muted-foreground inline" />
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {formatTsInTz(event.createdAt, timezone)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {formatPayload(event)}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
               )}
             </TableBody>
           </Table>
