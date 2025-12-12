@@ -394,13 +394,14 @@ export default function PostsPage() {
                     <TableHead>작성일</TableHead>
                     <TableHead className="text-center">댓글</TableHead>
                     <TableHead className="text-center">답글</TableHead>
+                    <TableHead className="text-center">좋아요</TableHead>
                     <TableHead className="text-center">총 참여도</TableHead>
                     <TableHead className="text-right">작업</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {posts.map((post, index) => {
-                    const totalEngagement = (post.countOfComments || 0) + (post.countOfReplies || 0)
+                    const totalEngagement = (post.countOfComments || 0) + (post.countOfReplies || 0) + (post.countOfLikes || 0)
                     const createdAt = post.createdAt 
                       ? (post.createdAt instanceof Timestamp 
                           ? post.createdAt.toDate() 
@@ -450,6 +451,9 @@ export default function PostsPage() {
                         </TableCell>
                         <TableCell className="text-center">
                           {post.countOfReplies || 0}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {post.countOfLikes || 0}
                         </TableCell>
                         <TableCell className="text-center font-medium">
                           {totalEngagement}
