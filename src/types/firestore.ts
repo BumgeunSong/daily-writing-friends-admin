@@ -165,6 +165,7 @@ export interface Post {
   updatedAt?: Date | Timestamp
   countOfComments: number
   countOfReplies: number
+  countOfLikes: number
   weekDaysFromFirstDay?: number
 }
 
