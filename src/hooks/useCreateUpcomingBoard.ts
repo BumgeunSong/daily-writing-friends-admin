@@ -3,6 +3,7 @@ import { collection, addDoc, getDocs, Timestamp, query, orderBy, limit } from 'f
 import { db } from '@/lib/firebase'
 import { Board } from '@/types/firestore'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { getSupabaseClient, adminDualWrite } from '@/lib/supabase'
 
 interface CreateBoardData {
   cohort: number
@@ -66,6 +67,21 @@ export function useCreateUpcomingBoard() {
       }
 
       const docRef = await addDoc(collection(db, 'boards'), boardData)
+
+      // Dual-write: insert board to Supabase
+      await adminDualWrite('create-board', async () => {
+        const supabase = getSupabaseClient()
+        const { error } = await supabase.from('boards').insert({
+          id: docRef.id,
+          title: data.title,
+          description: data.description,
+          first_day: data.firstDay.toISOString(),
+          last_day: data.lastDay.toISOString(),
+          cohort: data.cohort,
+        })
+        if (error) throw error
+      })
+
       return { id: docRef.id, ...boardData }
     },
     onSuccess: () => {

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { doc, updateDoc, getFirestore, getDoc, arrayRemove, collection, query, where, getDocs } from 'firebase/firestore'
 import { Check, UserCheck, X, Loader2, HelpCircle, AlertCircle, RefreshCw } from 'lucide-react'
+import { getSupabaseClient, adminDualWrite } from '@/lib/supabase'
 import { 
   Card, 
   CardContent, 
@@ -214,12 +215,34 @@ export default function UserApprovalPage() {
         await updateDoc(userRef, {
           [`boardPermissions.${selectedBoardId}`]: 'write'
         })
+
+        // Dual-write: upsert permission to Supabase
+        await adminDualWrite('approve-user-permission', async () => {
+          const supabase = getSupabaseClient()
+          const { error } = await supabase
+            .from('user_board_permissions')
+            .upsert(
+              { user_id: userId, board_id: selectedBoardId, permission: 'write' },
+              { onConflict: 'user_id,board_id' }
+            )
+          if (error) throw error
+        })
       }
-      
+
       // 2. 게시판의 waitingUsersIds 배열에서 사용자 ID 제거
       const boardRef = doc(db, 'boards', selectedBoardId)
       await updateDoc(boardRef, {
         waitingUsersIds: arrayRemove(userId)
+      })
+
+      // Dual-write: remove from board_waiting_users in Supabase
+      await adminDualWrite('approve-user-waiting', async () => {
+        const supabase = getSupabaseClient()
+        const { error } = await supabase
+          .from('board_waiting_users')
+          .delete()
+          .match({ board_id: selectedBoardId, user_id: userId })
+        if (error) throw error
       })
       
       return userId
@@ -254,7 +277,17 @@ export default function UserApprovalPage() {
       await updateDoc(boardRef, {
         waitingUsersIds: arrayRemove(userId)
       })
-      
+
+      // Dual-write: remove from board_waiting_users in Supabase
+      await adminDualWrite('reject-user-waiting', async () => {
+        const supabase = getSupabaseClient()
+        const { error } = await supabase
+          .from('board_waiting_users')
+          .delete()
+          .match({ board_id: selectedBoardId, user_id: userId })
+        if (error) throw error
+      })
+
       return userId
     },
     onSuccess: (userId) => {
