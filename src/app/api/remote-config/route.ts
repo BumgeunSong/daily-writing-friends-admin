@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { initAdmin } from '../firebaseAdmin'
+import { getSupabaseClient } from '@/lib/supabase'
 
 /**
  * GET: Fetch current Remote Config values
@@ -74,7 +75,18 @@ export async function PUT(request: NextRequest) {
     
     // Publish the updated template
     await remoteConfig.publishTemplate(template)
-    
+
+    // Write to Supabase app_config (primary source for client app)
+    try {
+      const supabase = getSupabaseClient()
+      await supabase.from('app_config').upsert([
+        { key: 'active_board_id', value: active_board_id || '' },
+        { key: 'upcoming_board_id', value: upcoming_board_id || '' },
+      ])
+    } catch (err) {
+      console.error('Failed to write board config to Supabase:', err)
+    }
+
     return NextResponse.json({
       success: true,
       active_board_id,
