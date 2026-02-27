@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { collection, getDocs, getFirestore, Timestamp } from 'firebase/firestore'
+import { fetchBoards as fetchBoardsFromSupabase } from '@/apis/supabase-reads'
 import { Eye, AlertCircle, RefreshCw, Newspaper, Plus, Settings2, CheckCircle2, Clock } from 'lucide-react'
 import { 
   Card, 
@@ -37,26 +37,17 @@ import { toast } from 'sonner'
 
 // 게시판 목록 조회 함수
 const fetchBoards = async (): Promise<Board[]> => {
-  try {
-    const db = getFirestore()
-    const boardsRef = collection(db, 'boards')
-    const snapshot = await getDocs(boardsRef)
-    
-    const boards = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Board))
-    
-    // 코호트 번호 기준 내림차순 정렬 (높은 번호 -> 낮은 번호)
-    return boards.sort((a, b) => {
-      const cohortA = a.cohort || 0
-      const cohortB = b.cohort || 0
-      return cohortB - cohortA
-    })
-  } catch (error) {
-    console.error('Error fetching boards:', error)
-    throw new Error('게시판 목록을 가져오는 중 오류가 발생했습니다.')
-  }
+  const rows = await fetchBoardsFromSupabase()
+  return rows.map(row => ({
+    id: row.id,
+    title: row.title,
+    description: row.description ?? '',
+    cohort: row.cohort ?? undefined,
+    firstDay: row.first_day ? new Date(row.first_day) : undefined,
+    lastDay: row.last_day ? new Date(row.last_day) : undefined,
+    createdAt: new Date(row.created_at),
+    waitingUsersIds: [],
+  } as unknown as Board))
 }
 
 export default function BoardsPage() {
@@ -420,16 +411,12 @@ export default function BoardsPage() {
               </TableHeader>
               <TableBody>
                 {boards.map((board) => {
-                  const firstDay = board.firstDay 
-                    ? (board.firstDay instanceof Timestamp 
-                        ? board.firstDay.toDate() 
-                        : new Date(board.firstDay))
+                  const firstDay = board.firstDay
+                    ? (board.firstDay instanceof Date ? board.firstDay : 'toDate' in board.firstDay ? board.firstDay.toDate() : null)
                     : null
-                  
-                  const lastDay = board.lastDay 
-                    ? (board.lastDay instanceof Timestamp 
-                        ? board.lastDay.toDate() 
-                        : new Date(board.lastDay))
+
+                  const lastDay = board.lastDay
+                    ? (board.lastDay instanceof Date ? board.lastDay : 'toDate' in board.lastDay ? board.lastDay.toDate() : null)
                     : null
                   
                   return (

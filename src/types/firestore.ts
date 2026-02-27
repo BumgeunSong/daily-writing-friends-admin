@@ -59,8 +59,8 @@ export interface Board {
   title: string
   description: string
   createdAt: Date | Timestamp
-  firstDay?: Timestamp
-  lastDay?: Timestamp
+  firstDay?: Date | Timestamp
+  lastDay?: Date | Timestamp
   cohort?: number
   waitingUsersIds: string[]
 }

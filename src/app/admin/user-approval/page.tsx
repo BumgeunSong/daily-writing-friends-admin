@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { doc, updateDoc, getFirestore, getDoc, arrayRemove, collection, query, where, getDocs } from 'firebase/firestore'
+import { doc, updateDoc, getFirestore, getDoc, arrayRemove } from 'firebase/firestore'
 import { Check, UserCheck, X, Loader2, HelpCircle, AlertCircle, RefreshCw } from 'lucide-react'
 import { getSupabaseClient, adminDualWrite } from '@/lib/supabase'
+import { fetchBoards as fetchBoardsFromSupabase, fetchBoard as fetchBoardFromSupabase, fetchWaitingUserIds, fetchPreviousCohortPostCount } from '@/apis/supabase-reads'
 import { 
   Card, 
   CardContent, 
@@ -46,98 +47,69 @@ import { Board, WaitingUser } from '@/types/firestore'
 
 // 게시판 목록 조회 함수
 const fetchBoards = async (): Promise<Board[]> => {
-  try {
-    const db = getFirestore()
-    const boardsRef = collection(db, 'boards')
-    const snapshot = await getDocs(boardsRef)
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Board))
-  } catch (error) {
-    console.error('Error fetching boards:', error)
-    throw new Error('게시판 목록을 가져오는 중 오류가 발생했습니다.')
-  }
+  const rows = await fetchBoardsFromSupabase()
+  return rows.map(row => ({
+    id: row.id,
+    title: row.title,
+    description: row.description ?? '',
+    cohort: row.cohort ?? undefined,
+    firstDay: row.first_day ? new Date(row.first_day) : undefined,
+    lastDay: row.last_day ? new Date(row.last_day) : undefined,
+    createdAt: new Date(row.created_at),
+    waitingUsersIds: [],
+  }))
 }
 
 // 선택한 게시판 조회 함수
-const fetchBoard = async (boardId: string | null): Promise<Board | null> => {
+const fetchSelectedBoard = async (boardId: string | null): Promise<Board | null> => {
   if (!boardId) return null
-  
   try {
-    const db = getFirestore()
-    const boardRef = doc(db, 'boards', boardId)
-    const boardDoc = await getDoc(boardRef)
-    
-    if (boardDoc.exists()) {
-      return {
-        id: boardDoc.id,
-        ...boardDoc.data()
-      } as Board
+    const row = await fetchBoardFromSupabase(boardId)
+    return {
+      id: row.id,
+      title: row.title,
+      description: row.description ?? '',
+      cohort: row.cohort ?? undefined,
+      createdAt: new Date(row.created_at),
+      waitingUsersIds: [],
     }
+  } catch {
     return null
-  } catch (error) {
-    console.error('Error fetching board:', error)
-    throw new Error('게시판 정보를 가져오는 중 오류가 발생했습니다.')
   }
 }
 
 // 대기 중인 사용자 목록 조회 함수
-const fetchWaitingUsers = async (board: Board | null): Promise<WaitingUser[]> => {
-  if (!board || !board.waitingUsersIds || board.waitingUsersIds.length === 0) {
-    return []
-  }
-  
-  try {
-    const db = getFirestore()
-    const usersData: WaitingUser[] = []
-    const currentCohort = board.cohort
-    const previousCohort = currentCohort ? currentCohort - 1 : null
+const fetchWaitingUsersData = async (boardId: string, cohort: number | undefined): Promise<WaitingUser[]> => {
+  if (!boardId) return []
+  const rows = await fetchWaitingUserIds(boardId)
+  if (!rows || rows.length === 0) return []
 
-    // 각 사용자 ID에 대해 문서 가져오기
-    for (const userId of board.waitingUsersIds) {
-      const userDoc = await getDoc(doc(db, 'users', userId))
-      if (userDoc.exists()) {
-        const userData = {
-          id: userDoc.id,
-          ...userDoc.data(),
-          previousPostsCount: null
-        } as WaitingUser
+  const users: WaitingUser[] = []
+  for (const row of rows) {
+    const u = row.user
+    if (!u) continue
 
-        // 이전 코호트 게시글 수 조회
-        if (previousCohort !== null) {
-          try {
-            // 이전 코호트 게시판 찾기
-            const boardsRef = collection(db, 'boards')
-            const boardQuery = query(boardsRef, where('cohort', '==', previousCohort))
-            const boardSnapshot = await getDocs(boardQuery)
-            
-            if (!boardSnapshot.empty) {
-              const previousBoardId = boardSnapshot.docs[0].id
-              
-              // 사용자의 postings 서브컬렉션에서 이전 코호트 게시글 수 계산
-              const postingsRef = collection(db, 'users', userId, 'postings')
-              const postingsQuery = query(postingsRef, where('board.id', '==', previousBoardId))
-              const postingsSnapshot = await getDocs(postingsQuery)
-              
-              userData.previousPostsCount = postingsSnapshot.size
-            }
-          } catch (error) {
-            console.error('Error fetching previous cohort posts:', error)
-            userData.previousPostsCount = null
-          }
-        }
-
-        usersData.push(userData)
-      }
+    let previousPostsCount: number | null = null
+    if (cohort) {
+      previousPostsCount = await fetchPreviousCohortPostCount(u.id, cohort)
     }
 
-    return usersData
-  } catch (error) {
-    console.error('Error fetching waiting users:', error)
-    throw new Error('대기 중인 사용자 정보를 가져오는 중 오류가 발생했습니다.')
+    users.push({
+      uid: u.id,
+      id: u.id,
+      realName: u.real_name,
+      nickname: u.nickname,
+      email: u.email,
+      phoneNumber: u.phone_number,
+      referrer: u.referrer,
+      profilePhotoURL: u.profile_photo_url,
+      bio: null,
+      boardPermissions: {},
+      updatedAt: null,
+      previousPostsCount,
+    })
   }
+  return users
 }
 
 export default function UserApprovalPage() {
@@ -176,27 +148,27 @@ export default function UserApprovalPage() {
   })
 
   // 선택된 게시판 쿼리
-  const { 
+  const {
     data: selectedBoard,
     isLoading: boardLoading,
     error: boardError
   } = useQuery({
     queryKey: ['board', selectedBoardId],
-    queryFn: () => fetchBoard(selectedBoardId),
+    queryFn: () => fetchSelectedBoard(selectedBoardId),
     enabled: !!selectedBoardId,
     staleTime: 5 * 60 * 1000, // 5분
   })
 
   // 대기 중인 사용자 목록 쿼리
-  const { 
+  const {
     data: waitingUsers = [],
     isLoading: usersLoading,
     error: usersError,
     refetch: refetchUsers
   } = useQuery({
     queryKey: ['waitingUsers', selectedBoardId],
-    queryFn: () => fetchWaitingUsers(selectedBoard || null),
-    enabled: !!selectedBoard && !!selectedBoard.waitingUsersIds && selectedBoard.waitingUsersIds.length > 0,
+    queryFn: () => fetchWaitingUsersData(selectedBoardId!, selectedBoard?.cohort),
+    enabled: !!selectedBoardId,
     staleTime: 2 * 60 * 1000, // 2분
   })
 
@@ -425,7 +397,7 @@ export default function UserApprovalPage() {
                   대기 중인 사용자 목록
                   {selectedBoard && (
                     <span className="ml-2 text-muted-foreground font-normal text-sm">
-                      ({selectedBoard.waitingUsersIds?.length || 0}명)
+                      ({waitingUsers.length}명)
                     </span>
                   )}
                 </CardTitle>

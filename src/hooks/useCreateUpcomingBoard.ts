@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { collection, addDoc, getDocs, Timestamp, query, orderBy, limit } from 'firebase/firestore'
+import { collection, addDoc, Timestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { Board } from '@/types/firestore'
+import { fetchLastBoard } from '@/apis/supabase-reads'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { getSupabaseClient, adminDualWrite } from '@/lib/supabase'
 
@@ -96,38 +96,22 @@ export function useCreateUpcomingBoard() {
     try {
       setIsCreating(true)
       
-      // 마지막 코호트 찾기
-      const boardsRef = collection(db, 'boards')
-      const q = query(boardsRef, orderBy('cohort', 'desc'), limit(1))
-      const snapshot = await getDocs(q)
-      
-      if (snapshot.empty) {
-        // 첫 번째 코호트 생성
+      const lastBoard = await fetchLastBoard()
+
+      if (!lastBoard) {
         const firstDay = getNextMonday(new Date())
         const lastDay = getFridayOf4thWeek(firstDay)
-        
         return {
           cohort: 1,
           title: '매일 글쓰기 프렌즈 1기',
           description: `${formatDateForDescription(firstDay)} - ${formatDateForDescription(lastDay)}`,
           firstDay,
-          lastDay
+          lastDay,
         }
       }
 
-      const lastBoard = snapshot.docs[0].data() as Board
-      const lastCohort = lastBoard.cohort || 0
-      const nextCohort = lastCohort + 1
-
-      // 마지막 코호트의 lastDay를 기준으로 다음 월요일 계산
-      let baseDate = new Date()
-      if (lastBoard.lastDay) {
-        const lastDayDate = lastBoard.lastDay instanceof Timestamp 
-          ? lastBoard.lastDay.toDate() 
-          : new Date(lastBoard.lastDay)
-        baseDate = lastDayDate
-      }
-
+      const nextCohort = (lastBoard.cohort || 0) + 1
+      const baseDate = lastBoard.last_day ? new Date(lastBoard.last_day) : new Date()
       const firstDay = getNextMonday(baseDate)
       const lastDay = getFridayOf4thWeek(firstDay)
 
@@ -136,7 +120,7 @@ export function useCreateUpcomingBoard() {
         title: `매일 글쓰기 프렌즈 ${nextCohort}기`,
         description: `${formatDateForDescription(firstDay)} - ${formatDateForDescription(lastDay)}`,
         firstDay,
-        lastDay
+        lastDay,
       }
     } catch (error) {
       console.error('Error generating next cohort:', error)
