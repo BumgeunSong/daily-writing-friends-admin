@@ -15,10 +15,7 @@ import {
   LogOut,
   XCircle,
   UserCheck,
-  CircleDashed,
-  Mic,
-  Calendar,
-  Activity
+  Calendar
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -45,11 +42,6 @@ const navItems: NavItem[] = [
     icon: <UserCheck className="h-5 w-5" />
   },
   {
-    title: '이탈 유저 관리',
-    href: '/admin/user-churn',
-    icon: <CircleDashed className="h-5 w-5" />
-  },
-  {
     title: '게시판 관리',
     href: '/admin/boards',
     icon: <Newspaper className="h-5 w-5" />
@@ -65,19 +57,9 @@ const navItems: NavItem[] = [
     icon: <MessageSquare className="h-5 w-5" />
   },
   {
-    title: '내레이션 가이드',
-    href: '/admin/narration',
-    icon: <Mic className="h-5 w-5" />
-  },
-  {
     title: '공휴일 관리',
     href: '/admin/holidays',
     icon: <Calendar className="h-5 w-5" />
-  },
-  {
-    title: 'Streak Monitor (Phase 2.1)',
-    href: '/admin/streak-monitor',
-    icon: <Activity className="h-5 w-5" />
   },
   {
     title: '설정',
