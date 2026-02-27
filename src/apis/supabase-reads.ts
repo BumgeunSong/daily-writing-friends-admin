@@ -163,6 +163,18 @@ export async function fetchWaitingUserIds(boardId: string): Promise<WaitingUser[
   }))
 }
 
+/** Select all users ordered by created_at DESC. */
+export async function fetchAllUsers(): Promise<SupabaseUser[]> {
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data as SupabaseUser[]
+}
+
 /** Select users by an array of ids. */
 export async function fetchUsersByIds(userIds: string[]): Promise<SupabaseUser[]> {
   if (userIds.length === 0) return []

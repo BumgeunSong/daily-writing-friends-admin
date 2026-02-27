@@ -1,16 +1,17 @@
 'use client'
 
-import { useCollection } from '@/hooks/useCollection'
+import { useQuery } from '@tanstack/react-query'
+import { fetchAllUsers, fetchBoards } from '@/apis/supabase-reads'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -20,9 +21,19 @@ const ADMIN_EMAIL: Set<string> = new Set(['isp1195@gmail.com', 'bob070030@gmail.
 
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth()
-  const { data: users, loading: usersLoading, error: dataError } = useCollection('users')
-  const { data: boards, loading: boardsLoading } = useCollection('boards')
   const router = useRouter()
+
+  const { data: users, isLoading: usersLoading, error: dataError } = useQuery({
+    queryKey: ['allUsers'],
+    queryFn: fetchAllUsers,
+    enabled: !authLoading && !!user,
+  })
+
+  const { data: boards, isLoading: boardsLoading } = useQuery({
+    queryKey: ['boards'],
+    queryFn: fetchBoards,
+    enabled: !authLoading && !!user,
+  })
 
   const isAdmin = ADMIN_EMAIL.has(user?.email || '')
 
@@ -107,7 +118,7 @@ export default function AdminPage() {
           웹사이트 현황 및 통계 정보입니다.
         </p>
       </div>
-      
+
       {dataError && (
         <Card className="bg-red-50 border-red-100">
           <CardContent className="p-4 text-red-600">
@@ -150,14 +161,14 @@ export default function AdminPage() {
               </p>
             ) : (
               <div className="space-y-4">
-                {users.slice(0, 5).map((user) => (
-                  <div key={user.id} className="flex items-center space-x-4">
+                {users.slice(0, 5).map((u) => (
+                  <div key={u.id} className="flex items-center space-x-4">
                     <div className="rounded-full bg-muted p-2">
                       <User className="h-4 w-4" />
                     </div>
                     <div className="flex-1 space-y-1">
-                      <p className="text-sm font-medium leading-none">{user.name || '이름 없음'}</p>
-                      <p className="text-sm text-muted-foreground">{user.email || '이메일 없음'}</p>
+                      <p className="text-sm font-medium leading-none">{u.real_name || u.nickname || '이름 없음'}</p>
+                      <p className="text-sm text-muted-foreground">{u.email || '이메일 없음'}</p>
                     </div>
                   </div>
                 ))}
@@ -197,7 +208,7 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       <Card>
         <CardFooter className="border-t px-6 py-3">
           <div className="text-xs text-muted-foreground">
