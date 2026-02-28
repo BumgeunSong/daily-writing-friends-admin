@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '@/lib/supabase'
+import { Board } from '@/types/firestore'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -282,6 +283,44 @@ export async function fetchAppConfig(): Promise<AppConfig> {
     upcoming_board_id: map['upcoming_board_id'] ?? '',
   }
 }
+
+// ---------------------------------------------------------------------------
+// Shared Board mapper  (SupabaseBoard → Board)
+// ---------------------------------------------------------------------------
+
+function mapToBoard(row: SupabaseBoard): Board {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description ?? '',
+    cohort: row.cohort ?? undefined,
+    firstDay: row.first_day ? new Date(row.first_day) : undefined,
+    lastDay: row.last_day ? new Date(row.last_day) : undefined,
+    createdAt: new Date(row.created_at),
+    waitingUsersIds: [],
+  }
+}
+
+/** Fetch all boards mapped to the app-level Board type. */
+export async function fetchBoardsMapped(): Promise<Board[]> {
+  const rows = await fetchBoards()
+  return rows.map(mapToBoard)
+}
+
+/** Fetch a single board mapped to the app-level Board type. Returns null on error. */
+export async function fetchBoardMapped(boardId: string): Promise<Board | null> {
+  try {
+    const row = await fetchBoard(boardId)
+    return mapToBoard(row)
+  } catch (e: unknown) {
+    if (e && typeof e === 'object' && 'code' in e && e.code === 'PGRST116') return null
+    throw e
+  }
+}
+
+// ---------------------------------------------------------------------------
+// App config
+// ---------------------------------------------------------------------------
 
 /** Upsert active_board_id and upcoming_board_id in app_config. */
 export async function updateAppConfig(

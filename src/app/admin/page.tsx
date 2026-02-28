@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { fetchAllUsers, fetchBoards } from '@/apis/supabase-reads'
+import { fetchAllUsers, fetchBoardsMapped } from '@/apis/supabase-reads'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
@@ -31,7 +31,8 @@ export default function AdminPage() {
 
   const { data: boards, isLoading: boardsLoading } = useQuery({
     queryKey: ['boards'],
-    queryFn: fetchBoards,
+    queryFn: fetchBoardsMapped,
+    staleTime: 5 * 60 * 1000,
     enabled: !authLoading && !!user,
   })
 

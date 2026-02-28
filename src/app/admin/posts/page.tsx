@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { fetchBoards as fetchBoardsFromSupabase, fetchPosts as fetchPostsFromSupabase, fetchUsersByIds } from '@/apis/supabase-reads'
+import { useState, useEffect, useMemo } from 'react'
+import { fetchBoardsMapped, fetchPosts as fetchPostsFromSupabase, fetchUsersByIds } from '@/apis/supabase-reads'
 import { Copy, Loader2, AlertCircle, RefreshCw, FileText } from 'lucide-react'
 import { 
   Card, 
@@ -34,7 +34,7 @@ import {
   useQueryClient 
 } from '@tanstack/react-query'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Board, Post, User } from '@/types/firestore'
+import { Post, User } from '@/types/firestore'
 
 // 여러 사용자 정보를 한번에 조회하는 함수
 const fetchUsers = async (userIds: string[]): Promise<Record<string, User>> => {
@@ -56,19 +56,6 @@ const fetchUsers = async (userIds: string[]): Promise<Record<string, User>> => {
     } as User
   }
   return map
-}
-
-// 게시판 목록 조회 함수
-const fetchBoards = async (): Promise<Board[]> => {
-  const rows = await fetchBoardsFromSupabase()
-  return rows.map(row => ({
-    id: row.id,
-    title: row.title,
-    description: row.description ?? '',
-    cohort: row.cohort ?? undefined,
-    createdAt: new Date(row.created_at),
-    waitingUsersIds: [],
-  }))
 }
 
 // 게시물 목록 조회 함수
@@ -145,7 +132,7 @@ export default function PostsPage() {
     error: boardsError 
   } = useQuery({
     queryKey: ['boards'],
-    queryFn: fetchBoards,
+    queryFn: fetchBoardsMapped,
     staleTime: 5 * 60 * 1000, // 5분
   })
 
@@ -163,7 +150,10 @@ export default function PostsPage() {
   })
 
   // 게시물 작성자들의 사용자 정보 조회
-  const authorIds = posts.map(post => post.authorId).filter(Boolean)
+  const authorIds = useMemo(
+    () => [...new Set(posts.map(p => p.authorId).filter(Boolean))].sort(),
+    [posts]
+  )
   const { 
     data: usersMap = {},
     isLoading: usersLoading

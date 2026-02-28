@@ -14,6 +14,7 @@ export function useRemoteConfig() {
   const {
     data: configValues,
     isLoading,
+    isFetching,
     refetch,
   } = useQuery({
     queryKey: ['appConfig'],
@@ -54,7 +55,7 @@ export function useRemoteConfig() {
     upcomingBoardId: configValues?.upcoming_board_id || '',
     isLoading,
     isUpdating: updateMutation.isPending,
-    isRefreshing: false,
+    isRefreshing: isFetching,
     error,
     updateBoards: updateMutation.mutate,
     updateBoardsAsync: updateMutation.mutateAsync,

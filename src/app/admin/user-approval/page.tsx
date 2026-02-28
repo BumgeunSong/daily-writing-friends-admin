@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { doc, updateDoc, getFirestore, getDoc, arrayRemove } from 'firebase/firestore'
 import { Check, UserCheck, X, Loader2, HelpCircle, AlertCircle, RefreshCw } from 'lucide-react'
 import { getSupabaseClient, adminDualWrite } from '@/lib/supabase'
-import { fetchBoards as fetchBoardsFromSupabase, fetchBoard as fetchBoardFromSupabase, fetchWaitingUserIds, fetchPreviousCohortPostCount } from '@/apis/supabase-reads'
+import { fetchBoardsMapped, fetchBoardMapped, fetchWaitingUserIds, fetchPreviousCohortPostCount } from '@/apis/supabase-reads'
 import { 
   Card, 
   CardContent, 
@@ -43,40 +43,7 @@ import {
   useQueryClient 
 } from '@tanstack/react-query'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Board, WaitingUser } from '@/types/firestore'
-
-// 게시판 목록 조회 함수
-const fetchBoards = async (): Promise<Board[]> => {
-  const rows = await fetchBoardsFromSupabase()
-  return rows.map(row => ({
-    id: row.id,
-    title: row.title,
-    description: row.description ?? '',
-    cohort: row.cohort ?? undefined,
-    firstDay: row.first_day ? new Date(row.first_day) : undefined,
-    lastDay: row.last_day ? new Date(row.last_day) : undefined,
-    createdAt: new Date(row.created_at),
-    waitingUsersIds: [],
-  }))
-}
-
-// 선택한 게시판 조회 함수
-const fetchSelectedBoard = async (boardId: string | null): Promise<Board | null> => {
-  if (!boardId) return null
-  try {
-    const row = await fetchBoardFromSupabase(boardId)
-    return {
-      id: row.id,
-      title: row.title,
-      description: row.description ?? '',
-      cohort: row.cohort ?? undefined,
-      createdAt: new Date(row.created_at),
-      waitingUsersIds: [],
-    }
-  } catch {
-    return null
-  }
-}
+import { WaitingUser } from '@/types/firestore'
 
 // 대기 중인 사용자 목록 조회 함수
 const fetchWaitingUsersData = async (boardId: string, cohort: number | undefined): Promise<WaitingUser[]> => {
@@ -84,32 +51,33 @@ const fetchWaitingUsersData = async (boardId: string, cohort: number | undefined
   const rows = await fetchWaitingUserIds(boardId)
   if (!rows || rows.length === 0) return []
 
-  const users: WaitingUser[] = []
-  for (const row of rows) {
-    const u = row.user
-    if (!u) continue
+  const users = await Promise.all(
+    rows.map(async (row) => {
+      const u = row.user
+      if (!u) return null
 
-    let previousPostsCount: number | null = null
-    if (cohort) {
-      previousPostsCount = await fetchPreviousCohortPostCount(u.id, cohort)
-    }
+      let previousPostsCount: number | null = null
+      if (cohort) {
+        previousPostsCount = await fetchPreviousCohortPostCount(u.id, cohort)
+      }
 
-    users.push({
-      uid: u.id,
-      id: u.id,
-      realName: u.real_name,
-      nickname: u.nickname,
-      email: u.email,
-      phoneNumber: u.phone_number,
-      referrer: u.referrer,
-      profilePhotoURL: u.profile_photo_url,
-      bio: null,
-      boardPermissions: {},
-      updatedAt: null,
-      previousPostsCount,
+      return {
+        uid: u.id,
+        id: u.id,
+        realName: u.real_name,
+        nickname: u.nickname,
+        email: u.email,
+        phoneNumber: u.phone_number,
+        referrer: u.referrer,
+        profilePhotoURL: u.profile_photo_url,
+        bio: null,
+        boardPermissions: {},
+        updatedAt: null,
+        previousPostsCount,
+      } as WaitingUser
     })
-  }
-  return users
+  )
+  return users.filter((u): u is WaitingUser => u !== null)
 }
 
 export default function UserApprovalPage() {
@@ -143,7 +111,7 @@ export default function UserApprovalPage() {
     error: boardsError 
   } = useQuery({
     queryKey: ['boards'],
-    queryFn: fetchBoards,
+    queryFn: fetchBoardsMapped,
     staleTime: 5 * 60 * 1000, // 5분
   })
 
@@ -154,7 +122,7 @@ export default function UserApprovalPage() {
     error: boardError
   } = useQuery({
     queryKey: ['board', selectedBoardId],
-    queryFn: () => fetchSelectedBoard(selectedBoardId),
+    queryFn: () => selectedBoardId ? fetchBoardMapped(selectedBoardId) : null,
     enabled: !!selectedBoardId,
     staleTime: 5 * 60 * 1000, // 5분
   })
@@ -166,9 +134,9 @@ export default function UserApprovalPage() {
     error: usersError,
     refetch: refetchUsers
   } = useQuery({
-    queryKey: ['waitingUsers', selectedBoardId],
+    queryKey: ['waitingUsers', selectedBoardId, selectedBoard?.cohort],
     queryFn: () => fetchWaitingUsersData(selectedBoardId!, selectedBoard?.cohort),
-    enabled: !!selectedBoardId,
+    enabled: !!selectedBoardId && selectedBoard !== undefined,
     staleTime: 2 * 60 * 1000, // 2분
   })
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { fetchBoard as fetchBoardFromSupabase, fetchBoardUsers as fetchBoardUsersFromSupabase } from '@/apis/supabase-reads'
+import { fetchBoardMapped, fetchBoardUsers as fetchBoardUsersFromSupabase, fetchWaitingUserIds } from '@/apis/supabase-reads'
 import { ArrowLeft, Users, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import { 
   Card, 
@@ -25,7 +25,6 @@ import {
   useQueryClient 
 } from '@tanstack/react-query'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Board } from '@/types/firestore'
 import { useRouter } from 'next/navigation'
 import { useParams } from 'next/navigation'
 
@@ -39,23 +38,9 @@ interface BoardUser {
 }
 
 // 게시판 정보 조회 함수
-const fetchBoard = async (boardId: string): Promise<Board | null> => {
+const fetchBoard = async (boardId: string) => {
   if (!boardId) return null
-  try {
-    const row = await fetchBoardFromSupabase(boardId)
-    return {
-      id: row.id,
-      title: row.title,
-      description: row.description ?? '',
-      cohort: row.cohort ?? undefined,
-      firstDay: row.first_day ? new Date(row.first_day) : undefined,
-      lastDay: row.last_day ? new Date(row.last_day) : undefined,
-      createdAt: new Date(row.created_at),
-      waitingUsersIds: [],
-    }
-  } catch {
-    return null
-  }
+  return fetchBoardMapped(boardId)
 }
 
 // 게시판 권한을 가진 사용자 목록 조회 함수
@@ -121,7 +106,7 @@ export default function BoardDetailPage() {
   })
 
   // 게시판 사용자 목록 쿼리
-  const { 
+  const {
     data: users = [],
     isLoading: usersLoading,
     error: usersError,
@@ -129,6 +114,16 @@ export default function BoardDetailPage() {
   } = useQuery({
     queryKey: ['boardUsers', boardId],
     queryFn: () => fetchBoardUsers(boardId),
+    enabled: !!boardId,
+    staleTime: 2 * 60 * 1000, // 2분
+  })
+
+  // 대기 중인 사용자 쿼리
+  const {
+    data: waitingUsers = [],
+  } = useQuery({
+    queryKey: ['waitingUsers', boardId],
+    queryFn: () => fetchWaitingUserIds(boardId),
     enabled: !!boardId,
     staleTime: 2 * 60 * 1000, // 2분
   })
@@ -189,9 +184,9 @@ export default function BoardDetailPage() {
     )
   }
 
-  const firstDay = board.firstDay ? new Date(board.firstDay as unknown as string | number | Date) : null
+  const firstDay = board.firstDay instanceof Date ? board.firstDay : null
 
-  const createdAt = board.createdAt ? new Date(board.createdAt as unknown as string | number | Date) : null
+  const createdAt = board.createdAt instanceof Date ? board.createdAt : null
 
   return (
     <div className="space-y-6">
@@ -272,8 +267,8 @@ export default function BoardDetailPage() {
           <div>
             <label className="text-sm font-medium text-muted-foreground">대기 중인 사용자</label>
             <div className="mt-1 text-sm">
-              {board.waitingUsersIds && board.waitingUsersIds.length > 0 ? (
-                <span className="text-orange-600">{board.waitingUsersIds.length}명 대기 중</span>
+              {waitingUsers.length > 0 ? (
+                <span className="text-orange-600">{waitingUsers.length}명 대기 중</span>
               ) : (
                 <span className="text-green-600">대기 중인 사용자 없음</span>
               )}

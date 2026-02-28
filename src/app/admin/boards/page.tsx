@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { fetchBoards as fetchBoardsFromSupabase } from '@/apis/supabase-reads'
+import { fetchBoardsMapped } from '@/apis/supabase-reads'
 import { Eye, AlertCircle, RefreshCw, Newspaper, Plus, Settings2, CheckCircle2, Clock } from 'lucide-react'
 import { 
   Card, 
@@ -29,26 +29,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Board } from '@/types/firestore'
 import { useRouter } from 'next/navigation'
 import { useCreateUpcomingBoard } from '@/hooks/useCreateUpcomingBoard'
 import { useRemoteConfig } from '@/hooks/useRemoteConfig'
 import { toast } from 'sonner'
-
-// 게시판 목록 조회 함수
-const fetchBoards = async (): Promise<Board[]> => {
-  const rows = await fetchBoardsFromSupabase()
-  return rows.map(row => ({
-    id: row.id,
-    title: row.title,
-    description: row.description ?? '',
-    cohort: row.cohort ?? undefined,
-    firstDay: row.first_day ? new Date(row.first_day) : undefined,
-    lastDay: row.last_day ? new Date(row.last_day) : undefined,
-    createdAt: new Date(row.created_at),
-    waitingUsersIds: [],
-  } as unknown as Board))
-}
 
 export default function BoardsPage() {
   const router = useRouter()
@@ -78,7 +62,7 @@ export default function BoardsPage() {
     error: boardsError 
   } = useQuery({
     queryKey: ['boards'],
-    queryFn: fetchBoards,
+    queryFn: fetchBoardsMapped,
     staleTime: 5 * 60 * 1000, // 5분
   })
 
@@ -411,14 +395,9 @@ export default function BoardsPage() {
               </TableHeader>
               <TableBody>
                 {boards.map((board) => {
-                  const firstDay = board.firstDay
-                    ? (board.firstDay instanceof Date ? board.firstDay : 'toDate' in board.firstDay ? board.firstDay.toDate() : null)
-                    : null
+                  const firstDay = board.firstDay instanceof Date ? board.firstDay : null
+                  const lastDay = board.lastDay instanceof Date ? board.lastDay : null
 
-                  const lastDay = board.lastDay
-                    ? (board.lastDay instanceof Date ? board.lastDay : 'toDate' in board.lastDay ? board.lastDay.toDate() : null)
-                    : null
-                  
                   return (
                     <TableRow key={board.id}>
                       <TableCell className="font-medium text-center">
