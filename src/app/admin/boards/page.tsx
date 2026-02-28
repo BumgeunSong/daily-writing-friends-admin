@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { collection, getDocs, getFirestore, Timestamp } from 'firebase/firestore'
+import { fetchBoardsMapped } from '@/apis/supabase-reads'
 import { Eye, AlertCircle, RefreshCw, Newspaper, Plus, Settings2, CheckCircle2, Clock } from 'lucide-react'
 import { 
   Card, 
@@ -29,35 +29,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Board } from '@/types/firestore'
 import { useRouter } from 'next/navigation'
 import { useCreateUpcomingBoard } from '@/hooks/useCreateUpcomingBoard'
 import { useRemoteConfig } from '@/hooks/useRemoteConfig'
 import { toast } from 'sonner'
-
-// 게시판 목록 조회 함수
-const fetchBoards = async (): Promise<Board[]> => {
-  try {
-    const db = getFirestore()
-    const boardsRef = collection(db, 'boards')
-    const snapshot = await getDocs(boardsRef)
-    
-    const boards = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Board))
-    
-    // 코호트 번호 기준 내림차순 정렬 (높은 번호 -> 낮은 번호)
-    return boards.sort((a, b) => {
-      const cohortA = a.cohort || 0
-      const cohortB = b.cohort || 0
-      return cohortB - cohortA
-    })
-  } catch (error) {
-    console.error('Error fetching boards:', error)
-    throw new Error('게시판 목록을 가져오는 중 오류가 발생했습니다.')
-  }
-}
 
 export default function BoardsPage() {
   const router = useRouter()
@@ -87,7 +62,7 @@ export default function BoardsPage() {
     error: boardsError 
   } = useQuery({
     queryKey: ['boards'],
-    queryFn: fetchBoards,
+    queryFn: fetchBoardsMapped,
     staleTime: 5 * 60 * 1000, // 5분
   })
 
@@ -420,18 +395,9 @@ export default function BoardsPage() {
               </TableHeader>
               <TableBody>
                 {boards.map((board) => {
-                  const firstDay = board.firstDay 
-                    ? (board.firstDay instanceof Timestamp 
-                        ? board.firstDay.toDate() 
-                        : new Date(board.firstDay))
-                    : null
-                  
-                  const lastDay = board.lastDay 
-                    ? (board.lastDay instanceof Timestamp 
-                        ? board.lastDay.toDate() 
-                        : new Date(board.lastDay))
-                    : null
-                  
+                  const firstDay = board.firstDay instanceof Date ? board.firstDay : null
+                  const lastDay = board.lastDay instanceof Date ? board.lastDay : null
+
                   return (
                     <TableRow key={board.id}>
                       <TableCell className="font-medium text-center">

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { collection, query, where, getDocs, getFirestore, Timestamp, doc, getDoc } from 'firebase/firestore'
+import { useState, useEffect, useMemo } from 'react'
+import { fetchBoardsMapped, fetchPosts as fetchPostsFromSupabase, fetchUsersByIds } from '@/apis/supabase-reads'
 import { Copy, Loader2, AlertCircle, RefreshCw, FileText } from 'lucide-react'
 import { 
   Card, 
@@ -34,104 +34,48 @@ import {
   useQueryClient 
 } from '@tanstack/react-query'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Board, Post, User } from '@/types/firestore'
+import { Post, User } from '@/types/firestore'
 
 // 여러 사용자 정보를 한번에 조회하는 함수
 const fetchUsers = async (userIds: string[]): Promise<Record<string, User>> => {
-  const uniqueUserIds = [...new Set(userIds.filter(Boolean))]
-  const usersMap: Record<string, User> = {}
-  
-  try {
-    const db = getFirestore()
-    
-    for (const userId of uniqueUserIds) {
-      const userRef = doc(db, 'users', userId)
-      const userDoc = await getDoc(userRef)
-      
-      if (userDoc.exists()) {
-        usersMap[userId] = {
-          id: userDoc.id,
-          ...userDoc.data()
-        } as User
-      }
-    }
-    
-    return usersMap
-  } catch (error) {
-    console.error('Error fetching users:', error)
-    return {}
+  const uniqueIds = [...new Set(userIds.filter(Boolean))]
+  if (uniqueIds.length === 0) return {}
+  const rows = await fetchUsersByIds(uniqueIds)
+  const map: Record<string, User> = {}
+  for (const row of rows) {
+    map[row.id] = {
+      uid: row.id,
+      id: row.id,
+      realName: row.real_name,
+      nickname: row.nickname,
+      email: row.email,
+      phoneNumber: row.phone_number,
+      profilePhotoURL: row.profile_photo_url,
+      boardPermissions: {},
+      updatedAt: null,
+    } as User
   }
-}
-
-// 게시판 목록 조회 함수
-const fetchBoards = async (): Promise<Board[]> => {
-  try {
-    const db = getFirestore()
-    const boardsRef = collection(db, 'boards')
-    const snapshot = await getDocs(boardsRef)
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Board))
-  } catch (error) {
-    console.error('Error fetching boards:', error)
-    throw new Error('게시판 목록을 가져오는 중 오류가 발생했습니다.')
-  }
-}
-
-// 주의 시작일(월요일)과 종료일(일요일) 계산
-const getWeekRange = () => {
-  const now = new Date()
-  const dayOfWeek = now.getDay() // 0 = 일요일, 1 = 월요일, ...
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1))
-  monday.setHours(0, 0, 0, 0)
-  
-  const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
-  sunday.setHours(23, 59, 59, 999)
-  
-  return { monday, sunday }
+  return map
 }
 
 // 게시물 목록 조회 함수
 const fetchPosts = async (boardId: string | null, dateRange: 'week' | 'all'): Promise<Post[]> => {
   if (!boardId) return []
-  
-  try {
-    const db = getFirestore()
-    const postsRef = collection(db, 'boards', boardId, 'posts')
-    
-    let postsQuery
-    if (dateRange === 'week') {
-      const { monday, sunday } = getWeekRange()
-      postsQuery = query(
-        postsRef,
-        where('createdAt', '>=', Timestamp.fromDate(monday)),
-        where('createdAt', '<=', Timestamp.fromDate(sunday))
-      )
-    } else {
-      postsQuery = query(postsRef)
-    }
-    
-    const snapshot = await getDocs(postsQuery)
-    
-    const posts = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Post))
-    
-    // 총 참여도(댓글 + 답글) 기준 내림차순 정렬
-    return posts.sort((a, b) => {
-      const engagementA = (a.countOfComments || 0) + (a.countOfReplies || 0)
-      const engagementB = (b.countOfComments || 0) + (b.countOfReplies || 0)
-      return engagementB - engagementA
-    })
-  } catch (error) {
-    console.error('Error fetching posts:', error)
-    throw new Error('게시물 목록을 가져오는 중 오류가 발생했습니다.')
-  }
+  const rows = await fetchPostsFromSupabase(boardId, dateRange)
+  return rows.map(row => ({
+    id: row.id,
+    boardId: row.board_id,
+    title: row.title,
+    content: row.content,
+    thumbnailImageURL: row.thumbnail_image_url ?? undefined,
+    authorId: row.author_id,
+    authorName: row.author_name,
+    createdAt: new Date(row.created_at),
+    updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
+    countOfComments: row.count_of_comments,
+    countOfReplies: row.count_of_replies,
+    countOfLikes: row.count_of_likes,
+  }))
 }
 
 export default function PostsPage() {
@@ -188,7 +132,7 @@ export default function PostsPage() {
     error: boardsError 
   } = useQuery({
     queryKey: ['boards'],
-    queryFn: fetchBoards,
+    queryFn: fetchBoardsMapped,
     staleTime: 5 * 60 * 1000, // 5분
   })
 
@@ -206,7 +150,10 @@ export default function PostsPage() {
   })
 
   // 게시물 작성자들의 사용자 정보 조회
-  const authorIds = posts.map(post => post.authorId).filter(Boolean)
+  const authorIds = useMemo(
+    () => [...new Set(posts.map(p => p.authorId).filter(Boolean))].sort(),
+    [posts]
+  )
   const { 
     data: usersMap = {},
     isLoading: usersLoading
@@ -402,10 +349,8 @@ export default function PostsPage() {
                 <TableBody>
                   {posts.map((post, index) => {
                     const totalEngagement = (post.countOfComments || 0) + (post.countOfReplies || 0) + (post.countOfLikes || 0)
-                    const createdAt = post.createdAt 
-                      ? (post.createdAt instanceof Timestamp 
-                          ? post.createdAt.toDate() 
-                          : new Date(post.createdAt))
+                    const createdAt = post.createdAt instanceof Date
+                      ? post.createdAt
                       : null
                     
                     const author = usersMap[post.authorId]

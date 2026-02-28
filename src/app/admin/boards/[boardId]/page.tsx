@@ -1,6 +1,6 @@
 'use client'
 
-import { collection, doc, getDoc, getDocs, getFirestore, query, where, Timestamp } from 'firebase/firestore'
+import { fetchBoardMapped, fetchBoardUsers as fetchBoardUsersFromSupabase, fetchWaitingUserIds } from '@/apis/supabase-reads'
 import { ArrowLeft, Users, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import { 
   Card, 
@@ -25,50 +25,36 @@ import {
   useQueryClient 
 } from '@tanstack/react-query'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Board, User } from '@/types/firestore'
 import { useRouter } from 'next/navigation'
 import { useParams } from 'next/navigation'
 
+interface BoardUser {
+  id: string
+  realName: string | null
+  nickname: string | null
+  email: string | null
+  phoneNumber: string | null
+  permission: string
+}
+
 // 게시판 정보 조회 함수
-const fetchBoard = async (boardId: string): Promise<Board | null> => {
+const fetchBoard = async (boardId: string) => {
   if (!boardId) return null
-  
-  try {
-    const db = getFirestore()
-    const boardRef = doc(db, 'boards', boardId)
-    const boardDoc = await getDoc(boardRef)
-    
-    if (boardDoc.exists()) {
-      return {
-        id: boardDoc.id,
-        ...boardDoc.data()
-      } as Board
-    }
-    return null
-  } catch (error) {
-    console.error('Error fetching board:', error)
-    throw new Error('게시판 정보를 가져오는 중 오류가 발생했습니다.')
-  }
+  return fetchBoardMapped(boardId)
 }
 
 // 게시판 권한을 가진 사용자 목록 조회 함수
-const fetchBoardUsers = async (boardId: string): Promise<User[]> => {
+const fetchBoardUsers = async (boardId: string): Promise<BoardUser[]> => {
   if (!boardId) return []
-  
-  try {
-    const db = getFirestore()
-    const usersRef = collection(db, 'users')
-    const usersQuery = query(usersRef, where(`boardPermissions.${boardId}`, 'in', ['read', 'write', 'admin']))
-    const snapshot = await getDocs(usersQuery)
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as User))
-  } catch (error) {
-    console.error('Error fetching board users:', error)
-    throw new Error('게시판 사용자 정보를 가져오는 중 오류가 발생했습니다.')
-  }
+  const rows = await fetchBoardUsersFromSupabase(boardId)
+  return rows.map(row => ({
+    id: row.user.id,
+    realName: row.user.real_name,
+    nickname: row.user.nickname,
+    email: row.user.email,
+    phoneNumber: row.user.phone_number,
+    permission: row.permission,
+  }))
 }
 
 // 권한 레벨에 따른 뱃지 스타일 반환
@@ -120,7 +106,7 @@ export default function BoardDetailPage() {
   })
 
   // 게시판 사용자 목록 쿼리
-  const { 
+  const {
     data: users = [],
     isLoading: usersLoading,
     error: usersError,
@@ -128,6 +114,16 @@ export default function BoardDetailPage() {
   } = useQuery({
     queryKey: ['boardUsers', boardId],
     queryFn: () => fetchBoardUsers(boardId),
+    enabled: !!boardId,
+    staleTime: 2 * 60 * 1000, // 2분
+  })
+
+  // 대기 중인 사용자 쿼리
+  const {
+    data: waitingUsers = [],
+  } = useQuery({
+    queryKey: ['waitingUsers', boardId],
+    queryFn: () => fetchWaitingUserIds(boardId),
     enabled: !!boardId,
     staleTime: 2 * 60 * 1000, // 2분
   })
@@ -188,17 +184,9 @@ export default function BoardDetailPage() {
     )
   }
 
-  const firstDay = board.firstDay 
-    ? (board.firstDay instanceof Timestamp 
-        ? board.firstDay.toDate() 
-        : new Date(board.firstDay))
-    : null
+  const firstDay = board.firstDay instanceof Date ? board.firstDay : null
 
-  const createdAt = board.createdAt 
-    ? (board.createdAt instanceof Timestamp 
-        ? board.createdAt.toDate() 
-        : new Date(board.createdAt))
-    : null
+  const createdAt = board.createdAt instanceof Date ? board.createdAt : null
 
   return (
     <div className="space-y-6">
@@ -279,8 +267,8 @@ export default function BoardDetailPage() {
           <div>
             <label className="text-sm font-medium text-muted-foreground">대기 중인 사용자</label>
             <div className="mt-1 text-sm">
-              {board.waitingUsersIds && board.waitingUsersIds.length > 0 ? (
-                <span className="text-orange-600">{board.waitingUsersIds.length}명 대기 중</span>
+              {waitingUsers.length > 0 ? (
+                <span className="text-orange-600">{waitingUsers.length}명 대기 중</span>
               ) : (
                 <span className="text-green-600">대기 중인 사용자 없음</span>
               )}
@@ -347,10 +335,7 @@ export default function BoardDetailPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => {
-                  const permission = user.boardPermissions[boardId] as 'read' | 'write' | 'admin'
-                  
-                  return (
+                {users.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">
                         {user.nickname || '닉네임 없음'}
@@ -369,11 +354,10 @@ export default function BoardDetailPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-center">
-                        {getPermissionBadge(permission)}
+                        {getPermissionBadge(user.permission as 'read' | 'write' | 'admin')}
                       </TableCell>
                     </TableRow>
-                  )
-                })}
+                  ))}
               </TableBody>
             </Table>
           )}
